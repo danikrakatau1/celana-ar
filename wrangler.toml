@@ -9,7 +9,7 @@ DOMAIN = "celana-ar-store.my.id"
 binding = "INBOX"
 # GANTI dengan KV Namespace ID dari dashboard:
 # Workers & Pages > KV > Create a namespace > salin ID-nya ke sini
-id = "GANTI_DENGAN_KV_NAMESPACE_ID"
+id = "c17238a26010462e8a47cbc20f3b3cbc"
 
 # --- Custom domain (pilih salah satu cara) ---
 # Cara 1 (disarankan): dashboard Worker > Settings > Domains & Routes
