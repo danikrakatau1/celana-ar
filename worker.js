@@ -184,7 +184,8 @@ async function handleEmail(message, env) {
     const body = extractBody(raw);
 
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    const email = { id, from, to: toAddr, subject, date, body };
+    const expiresAt = Date.now() + TTL * 1000;
+    const email = { id, from, to: toAddr, subject, date, body, expiresAt };
     await env.INBOX.put("msg:" + id, JSON.stringify(email), {
       expirationTtl: TTL,
     });
@@ -194,7 +195,7 @@ async function handleEmail(message, env) {
     try {
       idx = JSON.parse((await env.INBOX.get(idxKey)) || "[]");
     } catch {}
-    idx.unshift({ id, from, subject, date });
+    idx.unshift({ id, from, subject, date, expiresAt });
     await env.INBOX.put(idxKey, JSON.stringify(idx.slice(0, 50)), {
       expirationTtl: TTL,
     });
@@ -330,6 +331,17 @@ button:active{transform:scale(.96)}
 .mdate{font-size:11.5px;color:var(--mut);white-space:nowrap;flex:none}
 .chev{color:#3d4a6b;font-size:20px;flex:none;transition:transform .15s,color .15s}
 .mail:hover .chev{transform:translateX(4px);color:var(--cy)}
+.searchrow{margin:2px 0 8px}
+.searchrow input{width:100%;border:1px solid var(--stroke);border-radius:10px;padding:10px 14px;font-size:13.5px;
+  background:rgba(4,6,13,.5);color:var(--txt);outline:none;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+.searchrow input:focus{border-color:var(--ind);box-shadow:0 0 0 3px rgba(99,102,241,.2)}
+.mright{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.cd{font-size:11px;color:#fbbf24;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.delbtn{flex:none;width:30px;height:30px;border-radius:50%;background:rgba(148,163,184,.07);border:1px solid var(--stroke);
+  color:#8b98b8;font-size:12px;padding:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.delbtn:hover{background:rgba(248,113,113,.2);border-color:rgba(248,113,113,.45);color:#fca5a5;transform:scale(1.08)}
+.mail.fresh{animation:freshglow 2.4s ease-out}
+@keyframes freshglow{0%{background:rgba(34,211,238,.2);box-shadow:0 0 26px rgba(34,211,238,.35)}100%{background:transparent;box-shadow:none}}
 /* skeleton */
 .skel{border-radius:12px;padding:14px 10px;border-bottom:1px solid rgba(148,163,184,.08)}
 .skel div{height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(148,163,184,.1) 25%,rgba(148,163,184,.22) 50%,rgba(148,163,184,.1) 75%);
@@ -408,10 +420,12 @@ button:active{transform:scale(.96)}
     <div class="inbox-head">
       <h2>Kotak Masuk</h2><span class="badge" id="count">0</span>
       <span class="head-right">
+        <button class="refresh" id="muteBtn" onclick="toggleMute()" title="Suara notifikasi">🔔</button>
         <button class="refresh" id="refreshBtn" onclick="manualRefresh()" title="Refresh inbox">↻</button>
         <span class="live"><span class="rings"><i></i><i></i></span>live</span>
       </span>
     </div>
+    <div class="searchrow"><input id="q" placeholder="🔍 Cari pengirim / subjek..." oninput="paint()"></div>
     <div id="list"></div>
   </div>
 
@@ -444,7 +458,7 @@ function setDomain(d){
   const local = address.split("@")[0];
   domain = d; address = local + "@" + d;
   localStorage.setItem("tm_dom", d); localStorage.setItem("tm_addr", address);
-  renderDomSel(); renderAddr(true); load(); toast("🔄 Domain: " + d);
+  resetInboxState(); renderDomSel(); renderAddr(true); load(); toast("🔄 Domain: " + d);
 }
 function rand(){ return Math.random().toString(36).slice(2,10); }
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -503,7 +517,7 @@ function fallbackCopy(done){
 function newAddr(){
   address = rand() + "@" + domain;
   localStorage.setItem("tm_addr", address);
-  renderAddr(true); load(); toast("🎲 Alamat baru dibuat");
+  resetInboxState(); renderAddr(true); load(); toast("🎲 Alamat baru dibuat");
 }
 function useCustom(){
   const p = document.getElementById("prefix").value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
@@ -511,7 +525,7 @@ function useCustom(){
   address = p + "@" + domain;
   localStorage.setItem("tm_addr", address);
   document.getElementById("prefix").value = "";
-  renderAddr(true); load(); toast("✨ Alamat dipakai");
+  resetInboxState(); renderAddr(true); load(); toast("✨ Alamat dipakai");
 }
 function avatarGrad(from){
   let h = 0; for(let i = 0; i < from.length; i++) h = (h*31 + from.charCodeAt(i)) % 360;
@@ -537,34 +551,109 @@ function skeleton(){
   document.getElementById("list").innerHTML = h;
 }
 let firstLoad = true;
+let cacheEmails = [];
+const knownIds = new Set();
+const freshIds = new Set();
+let muted = localStorage.getItem("tm_mute") === "1";
+function emptyHTML(){
+  return '<div class="empty"><span class="big">' +
+    '<svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="url(#eg)" stroke-width="1.3">' +
+    '<rect x="3" y="5" width="18" height="14" rx="3"/>' +
+    '<path d="M4.5 7.5l7.5 5.5 7.5-5.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<defs><linearGradient id="eg" x1="3" y1="5" x2="21" y2="19"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs></svg></span>' +
+    '<p>Belum ada email masuk.<br>Kirim ke alamat di atas — muncul di sini otomatis ✨</p></div>';
+}
+function paint(){
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const list = document.getElementById("list");
+  countUp(document.getElementById("count"), cacheEmails.length);
+  const emails = q ? cacheEmails.filter(function(e){ return (e.from + " " + e.subject).toLowerCase().indexOf(q) !== -1; }) : cacheEmails;
+  if(!emails.length){
+    list.innerHTML = cacheEmails.length ? '<div class="empty"><p>Tidak ketemu.<br>Coba kata kunci lain 🔍</p></div>' : emptyHTML();
+    return;
+  }
+  list.innerHTML = emails.map(function(e, i){
+    const fresh = freshIds.has(e.id) ? " fresh" : "";
+    const exp = e.expiresAt ? ' data-exp="' + e.expiresAt + '"' : "";
+    return '<div class="mail' + fresh + '" style="animation-delay:' + (i*60) + 'ms" onclick="readMail(\\'' + e.id + '\\')">' +
+    '<div class="avatar" style="background:' + avatarGrad(e.from) + '">' + initialOf(esc(e.from)) + '</div>' +
+    '<div class="minfo"><div class="mfrom">' + esc(e.from) + '</div>' +
+    '<div class="msubj">' + esc(e.subject) + '</div></div>' +
+    '<div class="mright"><div class="mdate">' + esc(e.date) + '</div><div class="cd"' + exp + '></div></div>' +
+    '<button class="delbtn" onclick="event.stopPropagation();deleteMail(\\'' + e.id + '\\')" title="Hapus email">✕</button></div>';
+  }).join("");
+}
+function ding(){
+  if(muted) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC();
+    [[880, 0], [1318, 0.12]].forEach(function(pair){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = "sine"; o.frequency.value = pair[0];
+      const t = ctx.currentTime + pair[1];
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      o.start(t); o.stop(t + 0.5);
+    });
+  }catch(e){}
+}
+function toggleMute(){
+  muted = !muted;
+  localStorage.setItem("tm_mute", muted ? "1" : "0");
+  document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
+  toast(muted ? "🔕 Suara notifikasi mati" : "🔔 Suara notifikasi nyala");
+}
+async function deleteMail(id){
+  try{
+    const r = await fetch("/api/delete?address=" + encodeURIComponent(address) + "&id=" + encodeURIComponent(id), { method: "DELETE" });
+    const j = await r.json();
+    if(j.ok){
+      knownIds.delete(id); freshIds.delete(id);
+      cacheEmails = cacheEmails.filter(function(e){ return e.id !== id; });
+      paint(); toast("🗑️ Email dihapus");
+    } else toast("⚠️ Gagal menghapus");
+  }catch(e){ toast("⚠️ Gagal menghapus"); }
+}
+function resetInboxState(){
+  knownIds.clear(); freshIds.clear(); cacheEmails = [];
+  const q = document.getElementById("q"); if(q) q.value = "";
+}
 async function load(){
   if(firstLoad) skeleton();
   try{
     const r = await fetch("/api/inbox?address=" + encodeURIComponent(address));
     const j = await r.json();
-    const list = document.getElementById("list");
-    countUp(document.getElementById("count"), j.emails.length);
-    if(!j.emails.length){
-      list.innerHTML = '<div class="empty"><span class="big">' +
-        '<svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="url(#eg)" stroke-width="1.3">' +
-        '<rect x="3" y="5" width="18" height="14" rx="3"/>' +
-        '<path d="M4.5 7.5l7.5 5.5 7.5-5.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-        '<defs><linearGradient id="eg" x1="3" y1="5" x2="21" y2="19"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs></svg></span>' +
-        '<p>Belum ada email masuk.<br>Kirim ke alamat di atas — muncul di sini otomatis ✨</p></div>';
-      firstLoad = false; return;
+    let hasNew = false;
+    j.emails.forEach(function(e){
+      if(!knownIds.has(e.id)){
+        knownIds.add(e.id);
+        if(!firstLoad){ freshIds.add(e.id); hasNew = true; }
+      }
+    });
+    cacheEmails = j.emails;
+    paint();
+    if(hasNew){
+      ding(); toast("📩 Email baru masuk!");
+      setTimeout(function(){ freshIds.clear(); paint(); }, 2500);
     }
-    list.innerHTML = j.emails.map(function(e, i){
-      return '<div class="mail" style="animation-delay:' + (i*70) + 'ms" onclick="readMail(\\'' + e.id + '\\')">' +
-      '<div class="avatar" style="background:' + avatarGrad(e.from) + '">' + initialOf(esc(e.from)) + '</div>' +
-      '<div class="minfo"><div class="mfrom">' + esc(e.from) + '</div>' +
-      '<div class="msubj">' + esc(e.subject) + '</div></div>' +
-      '<div class="mdate">' + esc(e.date) + '</div><div class="chev">›</div></div>';
-    }).join("");
   }catch(e){
     if(firstLoad) document.getElementById("list").innerHTML = '<div class="empty"><p>Gagal memuat. Cek koneksi lalu refresh 🔄</p></div>';
   }
   firstLoad = false;
 }
+setInterval(function(){
+  const now = Date.now();
+  const els = document.querySelectorAll(".cd[data-exp]");
+  for(let i = 0; i < els.length; i++){
+    const exp = parseInt(els[i].getAttribute("data-exp"), 10) || 0;
+    let s = Math.max(0, Math.floor((exp - now) / 1000));
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+    els[i].textContent = "⏱" + h + ":" + (m < 10 ? "0" + m : m) + ":" + (ss < 10 ? "0" + ss : ss);
+  }
+}, 1000);
 async function readMail(id){
   const r = await fetch("/api/read?address=" + encodeURIComponent(address) + "&id=" + encodeURIComponent(id));
   const j = await r.json();
@@ -580,7 +669,9 @@ function closeModal(){
   document.body.style.overflow = "";
 }
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
-renderDomSel(); renderAddr(true); load();
+renderDomSel(); renderAddr(true);
+document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
+load();
 setInterval(load, 8000);
 </script>
 </body>
@@ -621,6 +712,22 @@ export default {
       const raw = await env.INBOX.get("msg:" + id);
       if (!raw) return json({ error: "expired" }, 410);
       return json(JSON.parse(raw));
+    }
+
+    if (url.pathname === "/api/delete" && request.method === "DELETE") {
+      const address = (url.searchParams.get("address") || "").toLowerCase().trim();
+      const id = (url.searchParams.get("id") || "").trim();
+      if (!validAddress(address, domains) || !/^[a-z0-9]+$/i.test(id))
+        return json({ error: "invalid" }, 400);
+      let idx = [];
+      try {
+        idx = JSON.parse((await env.INBOX.get("idx:" + address)) || "[]");
+      } catch {}
+      const kept = idx.filter((e) => e.id !== id);
+      if (kept.length === idx.length) return json({ error: "not found" }, 404);
+      await env.INBOX.put("idx:" + address, JSON.stringify(kept), { expirationTtl: TTL });
+      await env.INBOX.delete("msg:" + id);
+      return json({ ok: true });
     }
 
     const html = PAGE.split("__DOMAIN__").join(primary).split("__DOMAINS__").join(domains.join(","));
