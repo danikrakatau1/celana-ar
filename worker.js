@@ -210,6 +210,9 @@ const PAGE = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TempMail — __DOMAIN__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg0:#04060d; --bg1:#0a0f1e;
@@ -220,8 +223,9 @@ const PAGE = `<!DOCTYPE html>
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans-serif;
-  background:var(--bg0);color:var(--txt);min-height:100vh;overflow-x:hidden}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  background:var(--bg0);color:var(--txt);min-height:100vh;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 /* ---------- animated background ---------- */
 .bg{position:fixed;inset:0;z-index:-2;overflow:hidden;background:radial-gradient(1200px 800px at 50% -10%,#0d1530 0%,var(--bg0) 60%)}
 .orb{position:absolute;border-radius:50%;filter:blur(110px);opacity:.5;animation:drift 22s ease-in-out infinite alternate}
@@ -241,13 +245,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans
 .topbar-in{max-width:780px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;gap:11px}
 .logo-anim{animation:float 3.4s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(99,102,241,.55))}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
-.brand{font-size:18px;font-weight:800;letter-spacing:.01em}
+.brand{font-family:'Space Grotesk','Inter',sans-serif;font-size:20px;font-weight:700;letter-spacing:.02em}
 .brand em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ver{font-size:10px;font-weight:800;color:#04060d;background:var(--grad);border-radius:6px;padding:3px 7px;letter-spacing:.08em}
-.clock{margin-left:auto;font-size:14px;color:#e0e7ff;background:rgba(99,102,241,.14);
-  border:1px solid rgba(99,102,241,.35);padding:6px 15px;border-radius:999px;font-weight:800;
-  font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em;
-  box-shadow:0 0 18px rgba(99,102,241,.25) inset;white-space:nowrap}
+.clock{margin-left:auto;font-size:14px;color:#fff;background:rgba(99,102,241,.14);
+  border:1px solid rgba(99,102,241,.35);padding:6px 15px;border-radius:999px;font-weight:700;
+  font-family:'JetBrains Mono',ui-monospace,'Cascadia Code',Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em;
+  box-shadow:0 0 18px rgba(99,102,241,.25) inset;white-space:nowrap;text-shadow:0 0 12px rgba(165,180,252,.5)}
 /* ---------- layout ---------- */
 .wrap{max-width:780px;margin:0 auto;padding:28px 20px 60px}
 .card{background:rgba(148,163,184,.055);border:1px solid var(--stroke);border-radius:20px;
@@ -256,12 +260,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans
 .card:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 1px rgba(99,102,241,.12)}
 .rise{animation:rise .8s cubic-bezier(.16,.8,.24,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
-.label{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin-bottom:12px;
-  display:flex;align-items:center;gap:8px}
+.label{font-family:'Space Grotesk','Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(90deg,#a5b4fc,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--stroke),transparent)}
 /* ---------- address ---------- */
-.addrbox{position:relative;font-family:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
-  font-size:clamp(15px,3.6vw,21px);font-weight:700;word-break:break-all;cursor:pointer;
+.addrbox{position:relative;font-family:'JetBrains Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+  font-size:clamp(16px,3.8vw,23px);font-weight:700;letter-spacing:.01em;word-break:break-all;cursor:pointer;
   background:rgba(4,6,13,.55);border:1px solid rgba(99,102,241,.4);border-radius:14px;
   padding:16px 18px;margin-bottom:16px;color:#fff;
   box-shadow:0 0 28px rgba(99,102,241,.18) inset,0 0 24px rgba(99,102,241,.1);
@@ -303,7 +308,8 @@ button:active{transform:scale(.96)}
 .stat .t{font-size:11.5px;color:var(--mut);font-weight:600;line-height:1.4}
 /* ---------- inbox ---------- */
 .inbox-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.inbox-head h2{font-size:17px;font-weight:800}
+.inbox-head h2{font-family:'Space Grotesk','Inter',sans-serif;font-size:20px;font-weight:700;letter-spacing:.01em;
+  background:linear-gradient(90deg,#fff,#a5b4fc);-webkit-background-clip:text;background-clip:text;color:transparent}
 .badge{background:var(--grad);color:#fff;font-size:12px;font-weight:800;border-radius:999px;
   padding:4px 12px;min-width:30px;text-align:center;box-shadow:0 2px 12px rgba(99,102,241,.5)}
 .live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);font-weight:600}
@@ -325,8 +331,9 @@ button:active{transform:scale(.96)}
 .avatar{flex:none;width:44px;height:44px;border-radius:50%;color:#fff;display:flex;align-items:center;
   justify-content:center;font-weight:800;font-size:17px;box-shadow:0 0 0 2px rgba(255,255,255,.08),0 4px 14px rgba(0,0,0,.4)}
 .minfo{flex:1;min-width:0}
-.mfrom{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msubj{font-size:13px;color:#a9b6d3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.mfrom{font-weight:800;font-size:14.5px;color:#ffffff;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 0 20px rgba(255,255,255,.12)}
+.msubj{font-size:13.5px;font-weight:500;color:#c3cee9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .mdate{font-size:11.5px;color:var(--mut);white-space:nowrap;flex:none}
 .chev{color:#3d4a6b;font-size:20px;flex:none;transition:transform .15s,color .15s}
 .mail:hover .chev{transform:translateX(4px);color:var(--cy)}
