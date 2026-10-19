@@ -6,11 +6,16 @@ compatibility_date = "2026-10-01"
 # Daftar domain temp-mail (pisahkan koma). Domain pertama = utama.
 DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id"
 
-[[kv_namespaces]]
-binding = "INBOX"
-# GANTI dengan KV Namespace ID dari dashboard:
-# Workers & Pages > KV > Create a namespace > salin ID-nya ke sini
-id = "c17238a26010462e8a47cbc20f3b3cbc"
+[[durable_objects.bindings]]
+name = "INBOX_STORE"
+class_name = "InboxStore"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["InboxStore"]
+
+# KV lama (tidak dipakai lagi sejak migrasi Durable Objects 2026-10-19;
+# data lama expired sendiri max 2 jam). ID arsip: c17238a26010462e8a47cbc20f3b3cbc
 
 # --- Custom domain (pilih salah satu cara) ---
 # Cara 1 (disarankan): dashboard Worker > Settings > Domains & Routes

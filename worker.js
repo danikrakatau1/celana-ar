@@ -2,7 +2,8 @@
  * TempMail Worker — celana-ar-store.my.id
  *
  * 1. Email masuk via Cloudflare Email Routing (catch-all -> "Send to a Worker")
- *    disimpan ke KV, otomatis terhapus setelah 2 jam (expirationTtl).
+ *    disimpan ke Durable Object (strongly consistent, tanpa delay replikasi KV),
+ *    otomatis terhapus setelah 2 jam (expirationTtl).
  * 2. Web inbox + API JSON disajikan dari fetch handler yang sama.
  *
  * Setup:
@@ -21,6 +22,11 @@ function json(data, status = 200) {
     status,
     headers: { "content-type": "application/json; charset=utf-8" },
   });
+}
+
+function getStore(env, address) {
+  const id = env.INBOX_STORE.idFromName(address.toLowerCase());
+  return env.INBOX_STORE.get(id);
 }
 
 function validAddress(addr, domains) {
@@ -186,18 +192,10 @@ async function handleEmail(message, env) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const expiresAt = Date.now() + TTL * 1000;
     const email = { id, from, to: toAddr, subject, date, body, expiresAt, receivedAt: Date.now() };
-    await env.INBOX.put("msg:" + id, JSON.stringify(email), {
-      expirationTtl: TTL,
-    });
-
-    const idxKey = "idx:" + toAddr;
-    let idx = [];
-    try {
-      idx = JSON.parse((await env.INBOX.get(idxKey)) || "[]");
-    } catch {}
-    idx.unshift({ id, from, subject, date, expiresAt });
-    await env.INBOX.put(idxKey, JSON.stringify(idx.slice(0, 50)), {
-      expirationTtl: TTL,
+    await getStore(env, toAddr).fetch("https://do/save", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(email),
     });
   } catch {
     // jangan bounce — terima diam-diam
@@ -717,7 +715,8 @@ export default {
       if (!validAddress(address, domains)) return json({ error: "alamat tidak valid" }, 400);
       let idx = [];
       try {
-        idx = JSON.parse((await env.INBOX.get("idx:" + address)) || "[]");
+        const r = await getStore(env, address).fetch("https://do/inbox");
+        idx = (await r.json()).emails || [];
       } catch {}
       return json({ emails: idx });
     }
@@ -727,14 +726,13 @@ export default {
       const id = (url.searchParams.get("id") || "").trim();
       if (!validAddress(address, domains) || !/^[a-z0-9]+$/i.test(id))
         return json({ error: "invalid" }, 400);
-      let idx = [];
+      let email = null;
       try {
-        idx = JSON.parse((await env.INBOX.get("idx:" + address)) || "[]");
+        const r = await getStore(env, address).fetch("https://do/read?id=" + encodeURIComponent(id));
+        email = await r.json();
       } catch {}
-      if (!idx.some((e) => e.id === id)) return json({ error: "not found" }, 404);
-      const raw = await env.INBOX.get("msg:" + id);
-      if (!raw) return json({ error: "expired" }, 410);
-      return json(JSON.parse(raw));
+      if (!email || email.error) return json({ error: "not found" }, 404);
+      return json(email);
     }
 
     if (url.pathname === "/api/delete" && request.method === "DELETE") {
@@ -742,14 +740,9 @@ export default {
       const id = (url.searchParams.get("id") || "").trim();
       if (!validAddress(address, domains) || !/^[a-z0-9]+$/i.test(id))
         return json({ error: "invalid" }, 400);
-      let idx = [];
       try {
-        idx = JSON.parse((await env.INBOX.get("idx:" + address)) || "[]");
+        await getStore(env, address).fetch("https://do/delete?id=" + encodeURIComponent(id), { method: "DELETE" });
       } catch {}
-      const kept = idx.filter((e) => e.id !== id);
-      if (kept.length === idx.length) return json({ error: "not found" }, 404);
-      await env.INBOX.put("idx:" + address, JSON.stringify(kept), { expirationTtl: TTL });
-      await env.INBOX.delete("msg:" + id);
       return json({ ok: true });
     }
 
@@ -759,3 +752,52 @@ export default {
     });
   },
 };
+
+/* ---------------- Durable Object: penyimpanan inbox ----------------
+   Strongly consistent — tulis langsung kebaca, tanpa delay replikasi KV.
+   Satu instance per alamat email (idFromName). */
+
+export class InboxStore {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const st = this.state.storage;
+
+    if (req.method === "POST" && path === "/save") {
+      const email = await req.json();
+      await st.put("msg:" + email.id, email, { expirationTtl: TTL });
+      let idx = (await st.get("idx")) || [];
+      idx.unshift({ id: email.id, from: email.from, subject: email.subject, date: email.date, expiresAt: email.expiresAt });
+      idx = idx.slice(0, 50);
+      await st.put("idx", idx, { expirationTtl: TTL });
+      return new Response("ok");
+    }
+
+    if (path === "/inbox") {
+      const idx = (await st.get("idx")) || [];
+      return Response.json({ emails: idx });
+    }
+
+    if (path === "/read") {
+      const email = await st.get("msg:" + (url.searchParams.get("id") || ""));
+      if (!email) return Response.json({ error: "not_found" });
+      return Response.json(email);
+    }
+
+    if (req.method === "DELETE" && path === "/delete") {
+      const id = url.searchParams.get("id") || "";
+      await st.delete("msg:" + id);
+      let idx = (await st.get("idx")) || [];
+      idx = idx.filter((e) => e.id !== id);
+      await st.put("idx", idx, { expirationTtl: TTL });
+      return Response.json({ ok: true });
+    }
+
+    return new Response("not found", { status: 404 });
+  }
+}
