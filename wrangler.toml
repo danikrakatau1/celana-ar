@@ -3,13 +3,14 @@ main = "worker.js"
 compatibility_date = "2026-10-01"
 
 [vars]
-DOMAIN = "celana-ar-store.my.id"
+# Daftar domain temp-mail (pisahkan koma). Domain pertama = utama.
+DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id"
 
 [[kv_namespaces]]
 binding = "INBOX"
 # GANTI dengan KV Namespace ID dari dashboard:
 # Workers & Pages > KV > Create a namespace > salin ID-nya ke sini
-id = "c17238a26010462e8a47cbc20f3b3cbc"
+id = "GANTI_DENGAN_KV_NAMESPACE_ID"
 
 # --- Custom domain (pilih salah satu cara) ---
 # Cara 1 (disarankan): dashboard Worker > Settings > Domains & Routes

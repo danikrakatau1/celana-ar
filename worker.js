@@ -23,11 +23,10 @@ function json(data, status = 200) {
   });
 }
 
-function validAddress(addr, domain) {
-  return (
-    /^[a-z0-9._-]{1,64}@[a-z0-9.-]+\.[a-z]{2,}$/i.test(addr) &&
-    addr.toLowerCase().endsWith("@" + domain.toLowerCase())
-  );
+function validAddress(addr, domains) {
+  if (!/^[a-z0-9._-]{1,64}@[a-z0-9.-]+\.[a-z]{2,}$/i.test(addr)) return false;
+  const lower = addr.toLowerCase();
+  return domains.some((d) => lower.endsWith("@" + d));
 }
 
 /* ---------------- parser email ringan ---------------- */
@@ -292,6 +291,10 @@ button:active{transform:scale(.96)}
   outline:none;background:rgba(4,6,13,.5);color:var(--txt);font-family:inherit;transition:border-color .2s,box-shadow .2s}
 .customrow input:focus{border-color:var(--ind);box-shadow:0 0 0 3px rgba(99,102,241,.25)}
 .customrow input::placeholder{color:#5b6a8c}
+.domsel{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.domsel button{flex:1;min-width:0;background:rgba(148,163,184,.08);border:1px solid var(--stroke);color:var(--mut);
+  font-size:12.5px;font-weight:700;padding:9px 10px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.domsel button.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 2px 14px rgba(99,102,241,.45)}
 /* ---------- stats ---------- */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
 .stat{background:rgba(148,163,184,.055);border:1px solid var(--stroke);border-radius:14px;padding:13px 8px;
@@ -378,6 +381,7 @@ button:active{transform:scale(.96)}
   <div class="card rise" style="animation-delay:.05s">
     <div class="label">⚡ Alamat email sementara</div>
     <div class="addrbox" id="addr" onclick="copyAddr(this)" title="Klik untuk salin">…</div>
+    <div class="domsel" id="domsel"></div>
     <div class="btnrow">
       <button class="btn-p" id="copyBtn" onclick="copyAddr(this)">📋 Salin Alamat</button>
       <button class="btn-s" onclick="newAddr()">🎲 Alamat Baru</button>
@@ -417,8 +421,23 @@ button:active{transform:scale(.96)}
 <div class="toast" id="toast"></div>
 
 <script>
-const DOMAIN = "__DOMAIN__";
-let address = localStorage.getItem("tm_addr") || (rand() + "@" + DOMAIN);
+const DOMAINS = "__DOMAINS__".split(",");
+let domain = localStorage.getItem("tm_dom");
+let address = localStorage.getItem("tm_addr");
+const _ad = address ? address.split("@")[1] : null;
+if(!domain || DOMAINS.indexOf(domain) === -1) domain = (_ad && DOMAINS.indexOf(_ad) !== -1) ? _ad : DOMAINS[0];
+if(!address || address.split("@")[1] !== domain){ address = rand() + "@" + domain; localStorage.setItem("tm_addr", address); }
+function renderDomSel(){
+  document.getElementById("domsel").innerHTML = DOMAINS.map(function(d){
+    return '<button class="' + (d === domain ? "on" : "") + '" onclick="setDomain(\\'' + d + '\\')">' + esc(d) + "</button>";
+  }).join("");
+}
+function setDomain(d){
+  const local = address.split("@")[0];
+  domain = d; address = local + "@" + d;
+  localStorage.setItem("tm_dom", d); localStorage.setItem("tm_addr", address);
+  renderDomSel(); renderAddr(true); load(); toast("🔄 Domain: " + d);
+}
 function rand(){ return Math.random().toString(36).slice(2,10); }
 function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function toast(msg){
@@ -469,14 +488,14 @@ function fallbackCopy(done){
   document.body.removeChild(ta);
 }
 function newAddr(){
-  address = rand() + "@" + DOMAIN;
+  address = rand() + "@" + domain;
   localStorage.setItem("tm_addr", address);
   renderAddr(true); load(); toast("🎲 Alamat baru dibuat");
 }
 function useCustom(){
   const p = document.getElementById("prefix").value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
   if(!p){ toast("Isi nama dulu ya ✏️"); return; }
-  address = p + "@" + DOMAIN;
+  address = p + "@" + domain;
   localStorage.setItem("tm_addr", address);
   document.getElementById("prefix").value = "";
   renderAddr(true); load(); toast("✨ Alamat dipakai");
@@ -548,7 +567,7 @@ function closeModal(){
   document.body.style.overflow = "";
 }
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
-renderAddr(true); load();
+renderDomSel(); renderAddr(true); load();
 setInterval(load, 8000);
 </script>
 </body>
@@ -562,11 +581,13 @@ export default {
 
   async fetch(request, env) {
     const url = new URL(request.url);
-    const domain = env.DOMAIN || "celana-ar-store.my.id";
+    const domains = (env.DOMAINS || env.DOMAIN || "celana-ar-store.my.id")
+      .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const primary = domains[0];
 
     if (url.pathname === "/api/inbox") {
       const address = (url.searchParams.get("address") || "").toLowerCase().trim();
-      if (!validAddress(address, domain)) return json({ error: "alamat tidak valid" }, 400);
+      if (!validAddress(address, domains)) return json({ error: "alamat tidak valid" }, 400);
       let idx = [];
       try {
         idx = JSON.parse((await env.INBOX.get("idx:" + address)) || "[]");
@@ -577,7 +598,7 @@ export default {
     if (url.pathname === "/api/read") {
       const address = (url.searchParams.get("address") || "").toLowerCase().trim();
       const id = (url.searchParams.get("id") || "").trim();
-      if (!validAddress(address, domain) || !/^[a-z0-9]+$/i.test(id))
+      if (!validAddress(address, domains) || !/^[a-z0-9]+$/i.test(id))
         return json({ error: "invalid" }, 400);
       let idx = [];
       try {
@@ -589,7 +610,8 @@ export default {
       return json(JSON.parse(raw));
     }
 
-    return new Response(PAGE.split("__DOMAIN__").join(domain), {
+    const html = PAGE.split("__DOMAIN__").join(primary).split("__DOMAINS__").join(domains.join(","));
+    return new Response(html, {
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   },
