@@ -695,6 +695,7 @@ document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
 tickClock(); setInterval(tickClock, 1000);
 load();
 setInterval(load, 8000);
+document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") load(); });
 </script>
 </body>
 </html>
