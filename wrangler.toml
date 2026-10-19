@@ -1,0 +1,20 @@
+name = "celana-ar-tempmail"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+DOMAIN = "celana-ar-store.my.id"
+
+[[kv_namespaces]]
+binding = "INBOX"
+# GANTI dengan KV Namespace ID dari dashboard:
+# Workers & Pages > KV > Create a namespace > salin ID-nya ke sini
+id = "GANTI_DENGAN_KV_NAMESPACE_ID"
+
+# --- Custom domain (pilih salah satu cara) ---
+# Cara 1 (disarankan): dashboard Worker > Settings > Domains & Routes
+#          > Add Custom Domain, misal: mail.celana-ar-store.my.id
+# Cara 2: uncomment blok di bawah ini lalu push ulang
+# [[routes]]
+# pattern = "mail.celana-ar-store.my.id/*"
+# zone_name = "celana-ar-store.my.id"
