@@ -671,7 +671,7 @@ async function readMail(id){
   if(j.error){ toast("⚠️ Email tidak ditemukan / kedaluwarsa"); load(); return; }
   document.getElementById("mSubj").textContent = j.subject;
   let meta = "Dari: " + j.from;
-  if(j.date) meta += "\n📤 Terkirim: " + toWIB(j.date);
+  if(j.date) meta += "\\n📤 Terkirim: " + toWIB(j.date);
   if(j.receivedAt) meta += "   •   📥 Diterima web: " + toWIB(j.receivedAt);
   document.getElementById("mMeta").textContent = meta;
   document.getElementById("mBody").textContent = j.body || "(kosong)";
