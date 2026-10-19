@@ -323,18 +323,22 @@ button:active{transform:scale(.96)}
 .rings i{position:absolute;inset:0;border-radius:50%;background:#22c55e}
 .rings i:last-child{animation:ring 1.8s ease-out infinite;background:transparent;border:2px solid #22c55e}
 @keyframes ring{from{transform:scale(.5);opacity:1}to{transform:scale(2.1);opacity:0}}
-.mail{display:flex;gap:13px;align-items:center;padding:14px 10px;border-bottom:1px solid rgba(148,163,184,.1);
-  cursor:pointer;border-radius:12px;animation:rowin .5s cubic-bezier(.16,.8,.24,1) both;transition:background .15s,transform .15s}
+.mail{display:flex;gap:13px;align-items:center;padding:14px 12px;border-bottom:1px solid rgba(148,163,184,.1);
+  cursor:pointer;border-radius:12px;border-left:3px solid transparent;
+  animation:rowin .5s cubic-bezier(.16,.8,.24,1) both;transition:background .15s,transform .15s,border-color .2s,box-shadow .2s}
 .mail:last-child{border-bottom:none}
-.mail:hover{background:rgba(99,102,241,.09);transform:translateX(4px)}
+.mail:hover{background:rgba(99,102,241,.1);transform:translateX(4px);border-left-color:var(--cy);
+  box-shadow:-4px 0 18px rgba(34,211,238,.25)}
 @keyframes rowin{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
 .avatar{flex:none;width:44px;height:44px;border-radius:50%;color:#fff;display:flex;align-items:center;
-  justify-content:center;font-weight:800;font-size:17px;box-shadow:0 0 0 2px rgba(255,255,255,.08),0 4px 14px rgba(0,0,0,.4)}
+  justify-content:center;font-weight:800;font-size:17px;font-family:'Space Grotesk','Inter',sans-serif;
+  box-shadow:0 0 0 2px rgba(255,255,255,.1),0 0 18px rgba(99,102,241,.35),0 4px 14px rgba(0,0,0,.4)}
 .minfo{flex:1;min-width:0}
 .mfrom{font-weight:800;font-size:14.5px;color:#ffffff;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   text-shadow:0 0 20px rgba(255,255,255,.12)}
 .msubj{font-size:13.5px;font-weight:500;color:#c3cee9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
-.mdate{font-size:11.5px;color:var(--mut);white-space:nowrap;flex:none}
+.mdate{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:700;color:#67e8f9;
+  white-space:nowrap;flex:none;letter-spacing:.03em;text-shadow:0 0 10px rgba(103,232,249,.35)}
 .chev{color:#3d4a6b;font-size:20px;flex:none;transition:transform .15s,color .15s}
 .mail:hover .chev{transform:translateX(4px);color:var(--cy)}
 .searchrow{margin:2px 0 8px}
@@ -542,15 +546,26 @@ function initialOf(from){
   return m ? m[1].toUpperCase() : "?";
 }
 const ID_BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const EN_MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
 function pad2(x){ return (x < 10 ? "0" + x : x); }
-function toWIB(v){
-  if(v === undefined || v === null || v === "") return "";
-  const clean = String(v).replace(/\s*\([^)]*\)/g, "").trim();
-  const d = new Date(clean);
-  if(isNaN(d.getTime())) return String(v);
-  const w = new Date(d.getTime() + 7 * 3600 * 1000);
+function fmtWIB(ms){
+  const w = new Date(ms + 7 * 3600 * 1000);
   return w.getUTCDate() + " " + ID_BULAN[w.getUTCMonth()] + " " + w.getUTCFullYear() +
     ", " + pad2(w.getUTCHours()) + ":" + pad2(w.getUTCMinutes()) + ":" + pad2(w.getUTCSeconds()) + " WIB";
+}
+function toWIB(v){
+  if(v === undefined || v === null || v === "") return "";
+  if(typeof v === "number") return fmtWIB(v);
+  const s = String(v).trim();
+  const m = s.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/i);
+  if(!m) return s;
+  const utc = Date.UTC(+m[3], EN_MON[m[2].toLowerCase()], +m[1], +m[4], +m[5], +(m[6] || 0));
+  return fmtWIB(utc);
+}
+function toWIBshort(v){
+  const f = toWIB(v);
+  const m = f.match(/(\d{2}):(\d{2}):\d{2} WIB/);
+  return m ? m[1] + "." + m[2] : f;
 }
 function countUp(el, to){
   const from = parseInt(el.textContent) || 0;
@@ -596,7 +611,7 @@ function paint(){
     '<div class="avatar" style="background:' + avatarGrad(e.from) + '">' + initialOf(esc(e.from)) + '</div>' +
     '<div class="minfo"><div class="mfrom">' + esc(e.from) + '</div>' +
     '<div class="msubj">' + esc(e.subject) + '</div></div>' +
-    '<div class="mright"><div class="mdate">' + esc(toWIB(e.date)) + '</div><div class="cd"' + exp + '></div></div>' +
+    '<div class="mright"><div class="mdate">' + esc(toWIBshort(e.date)) + ' WIB</div><div class="cd"' + exp + '></div></div>' +
     '<button class="delbtn" onclick="event.stopPropagation();deleteMail(\\'' + e.id + '\\')" title="Hapus email">✕</button></div>';
   }).join("");
 }
