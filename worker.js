@@ -185,7 +185,7 @@ async function handleEmail(message, env) {
 
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const expiresAt = Date.now() + TTL * 1000;
-    const email = { id, from, to: toAddr, subject, date, body, expiresAt };
+    const email = { id, from, to: toAddr, subject, date, body, expiresAt, receivedAt: Date.now() };
     await env.INBOX.put("msg:" + id, JSON.stringify(email), {
       expirationTtl: TTL,
     });
@@ -363,7 +363,7 @@ button:active{transform:scale(.96)}
 .mbox::before{content:"";position:absolute;top:0;left:24px;right:24px;height:3px;border-radius:0 0 4px 4px;background:var(--grad)}
 .mhead{padding:26px 24px 0}
 .mhead h3{font-size:18px;margin-bottom:8px;word-break:break-word;line-height:1.45}
-.mmeta{font-size:12.5px;color:var(--mut);word-break:break-word;line-height:1.6}
+.mmeta{font-size:12.5px;color:var(--mut);word-break:break-word;line-height:1.7;white-space:pre-line}
 .mbody{padding:18px 24px;font-size:14.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;color:#cdd7ee}
 .mfoot{padding:0 24px 24px}
 .mfoot button{width:100%}
@@ -535,6 +535,17 @@ function initialOf(from){
   const m = /([a-zA-Z0-9])/.exec(from);
   return m ? m[1].toUpperCase() : "?";
 }
+function toWIB(v){
+  if(v === undefined || v === null || v === "") return "";
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return String(v);
+  try{
+    return d.toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    }).replace(/\./g, ":") + " WIB";
+  }catch(e){ return String(v); }
+}
 function countUp(el, to){
   const from = parseInt(el.textContent) || 0;
   if(from === to){ el.textContent = to; return; }
@@ -579,7 +590,7 @@ function paint(){
     '<div class="avatar" style="background:' + avatarGrad(e.from) + '">' + initialOf(esc(e.from)) + '</div>' +
     '<div class="minfo"><div class="mfrom">' + esc(e.from) + '</div>' +
     '<div class="msubj">' + esc(e.subject) + '</div></div>' +
-    '<div class="mright"><div class="mdate">' + esc(e.date) + '</div><div class="cd"' + exp + '></div></div>' +
+    '<div class="mright"><div class="mdate">' + esc(toWIB(e.date)) + '</div><div class="cd"' + exp + '></div></div>' +
     '<button class="delbtn" onclick="event.stopPropagation();deleteMail(\\'' + e.id + '\\')" title="Hapus email">✕</button></div>';
   }).join("");
 }
@@ -659,7 +670,10 @@ async function readMail(id){
   const j = await r.json();
   if(j.error){ toast("⚠️ Email tidak ditemukan / kedaluwarsa"); load(); return; }
   document.getElementById("mSubj").textContent = j.subject;
-  document.getElementById("mMeta").textContent = "Dari: " + j.from + (j.date ? "  •  " + j.date : "");
+  let meta = "Dari: " + j.from;
+  if(j.date) meta += "\n📤 Terkirim: " + toWIB(j.date);
+  if(j.receivedAt) meta += "   •   📥 Diterima web: " + toWIB(j.receivedAt);
+  document.getElementById("mMeta").textContent = meta;
   document.getElementById("mBody").textContent = j.body || "(kosong)";
   document.getElementById("modal").classList.add("open");
   document.body.style.overflow = "hidden";
