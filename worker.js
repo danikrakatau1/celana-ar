@@ -536,16 +536,16 @@ function initialOf(from){
   const m = /([a-zA-Z0-9])/.exec(from);
   return m ? m[1].toUpperCase() : "?";
 }
+const ID_BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+function pad2(x){ return (x < 10 ? "0" + x : x); }
 function toWIB(v){
   if(v === undefined || v === null || v === "") return "";
-  const d = new Date(v);
+  const clean = String(v).replace(/\s*\([^)]*\)/g, "").trim();
+  const d = new Date(clean);
   if(isNaN(d.getTime())) return String(v);
-  try{
-    return d.toLocaleString("id-ID", {
-      timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-    }).replace(/\./g, ":") + " WIB";
-  }catch(e){ return String(v); }
+  const w = new Date(d.getTime() + 7 * 3600 * 1000);
+  return w.getUTCDate() + " " + ID_BULAN[w.getUTCMonth()] + " " + w.getUTCFullYear() +
+    ", " + pad2(w.getUTCHours()) + ":" + pad2(w.getUTCMinutes()) + ":" + pad2(w.getUTCSeconds()) + " WIB";
 }
 function countUp(el, to){
   const from = parseInt(el.textContent) || 0;
@@ -687,15 +687,8 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMo
 function tickClock(){
   const el = document.getElementById("clock");
   if(!el) return;
-  try{
-    el.textContent = new Date().toLocaleString("id-ID", {
-      timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-    }) + " WIB";
-  }catch(e){
-    const n = new Date(), p = function(x){ return (x < 10 ? "0" + x : x); };
-    const w = new Date(n.getTime() + (420 + n.getTimezoneOffset()) * 60000);
-    el.textContent = p(w.getHours()) + "." + p(w.getMinutes()) + "." + p(w.getSeconds()) + " WIB";
-  }
+  const w = new Date(Date.now() + 7 * 3600 * 1000);
+  el.textContent = pad2(w.getUTCHours()) + "." + pad2(w.getUTCMinutes()) + "." + pad2(w.getUTCSeconds()) + " WIB";
 }
 renderDomSel(); renderAddr(true);
 document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
