@@ -273,10 +273,13 @@ body{font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
   transition:box-shadow .2s,border-color .2s}
 .addrbox:hover{border-color:var(--cy);box-shadow:0 0 28px rgba(34,211,238,.22) inset,0 0 30px rgba(34,211,238,.14)}
 .addrbox .dom{color:#7d8db4;font-weight:500}
-.addrbox::before{content:"";position:absolute;inset:-1px;border-radius:14px;padding:1px;
-  background:linear-gradient(135deg,rgba(99,102,241,.7),transparent 40%,transparent 60%,rgba(34,211,238,.7));
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.addrbox::before{content:"";position:absolute;inset:-1px;border-radius:14px;padding:1.5px;
+  background:conic-gradient(from var(--ang),rgba(99,102,241,.9),rgba(34,211,238,.9),rgba(168,85,247,.9),rgba(99,102,241,.9));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+  animation:spinborder 4s linear infinite}
+@keyframes spinborder{to{--ang:360deg}}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap}
 button{border:none;cursor:pointer;font-size:14px;font-weight:700;border-radius:12px;padding:12px 20px;
   transition:transform .1s,box-shadow .2s,background .2s,filter .2s;font-family:inherit}
@@ -323,9 +326,10 @@ button:active{transform:scale(.96)}
 .rings i{position:absolute;inset:0;border-radius:50%;background:#22c55e}
 .rings i:last-child{animation:ring 1.8s ease-out infinite;background:transparent;border:2px solid #22c55e}
 @keyframes ring{from{transform:scale(.5);opacity:1}to{transform:scale(2.1);opacity:0}}
-.mail{display:flex;gap:13px;align-items:center;padding:14px 12px;border-bottom:1px solid rgba(148,163,184,.1);
+.mail{display:flex;gap:13px;align-items:center;flex-wrap:wrap;padding:14px 12px;border-bottom:1px solid rgba(148,163,184,.1);
   cursor:pointer;border-radius:12px;border-left:3px solid transparent;
   animation:rowin .5s cubic-bezier(.16,.8,.24,1) both;transition:background .15s,transform .15s,border-color .2s,box-shadow .2s}
+.expbar{flex:1 1 100%}
 .mail:last-child{border-bottom:none}
 .mail:hover{background:rgba(99,102,241,.1);transform:translateX(4px);border-left-color:var(--cy);
   box-shadow:-4px 0 18px rgba(34,211,238,.25)}
@@ -351,6 +355,15 @@ button:active{transform:scale(.96)}
   color:#8b98b8;font-size:12px;padding:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .delbtn:hover{background:rgba(248,113,113,.2);border-color:rgba(248,113,113,.45);color:#fca5a5;transform:scale(1.08)}
 .mail.fresh{animation:freshglow 2.4s ease-out}
+@keyframes freshglow{0%{box-shadow:0 0 0 rgba(34,211,238,0);background:rgba(34,211,238,.12)}
+  25%{box-shadow:0 0 34px rgba(34,211,238,.55);background:rgba(34,211,238,.14)}
+  100%{box-shadow:0 0 0 rgba(34,211,238,0)}}
+.shake{animation:shake .6s}
+@keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-18deg)}40%{transform:rotate(14deg)}
+  60%{transform:rotate(-10deg)}80%{transform:rotate(6deg)}}
+.expbar{height:3px;border-radius:99px;background:rgba(148,163,184,.15);margin-top:7px;overflow:hidden}
+.expbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22d3ee,#6366f1);
+  transition:width 1s linear;box-shadow:0 0 8px rgba(34,211,238,.6)}
 @keyframes freshglow{0%{background:rgba(34,211,238,.2);box-shadow:0 0 26px rgba(34,211,238,.35)}100%{background:transparent;box-shadow:none}}
 /* skeleton */
 .skel{border-radius:12px;padding:14px 10px;border-bottom:1px solid rgba(148,163,184,.08)}
@@ -612,7 +625,8 @@ function paint(){
     '<div class="minfo"><div class="mfrom">' + esc(e.from) + '</div>' +
     '<div class="msubj">' + esc(e.subject) + '</div></div>' +
     '<div class="mright"><div class="mdate">' + esc(toWIBshort(e.date)) + ' WIB</div><div class="cd"' + exp + '></div></div>' +
-    '<button class="delbtn" onclick="event.stopPropagation();deleteMail(\\'' + e.id + '\\')" title="Hapus email">✕</button></div>';
+    '<button class="delbtn" onclick="event.stopPropagation();deleteMail(\\'' + e.id + '\\')" title="Hapus email">✕</button>' +
+    (e.expiresAt ? '<div class="expbar"><i data-expbar="' + e.expiresAt + '"></i></div>' : '') + '</div>';
   }).join("");
 }
 function ding(){
@@ -669,6 +683,8 @@ async function load(){
     paint();
     if(hasNew){
       ding(); toast("📩 Email baru masuk!");
+      const bell = document.getElementById("muteBtn");
+      bell.classList.remove("shake"); void bell.offsetWidth; bell.classList.add("shake");
       setTimeout(function(){ freshIds.clear(); paint(); }, 2500);
     }
   }catch(e){
@@ -684,6 +700,12 @@ setInterval(function(){
     let s = Math.max(0, Math.floor((exp - now) / 1000));
     const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
     els[i].textContent = "⏱" + h + ":" + (m < 10 ? "0" + m : m) + ":" + (ss < 10 ? "0" + ss : ss);
+  }
+  const bars = document.querySelectorAll(".expbar i[data-expbar]");
+  for(let i = 0; i < bars.length; i++){
+    const exp = parseInt(bars[i].getAttribute("data-expbar"), 10) || 0;
+    const pct = Math.max(0, Math.min(100, (exp - now) / 7200000 * 100));
+    bars[i].style.width = pct + "%";
   }
 }, 1000);
 async function readMail(id){
