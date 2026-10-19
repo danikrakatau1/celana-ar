@@ -306,7 +306,13 @@ button:active{transform:scale(.96)}
 .inbox-head h2{font-size:17px;font-weight:800}
 .badge{background:var(--grad);color:#fff;font-size:12px;font-weight:800;border-radius:999px;
   padding:4px 12px;min-width:30px;text-align:center;box-shadow:0 2px 12px rgba(99,102,241,.5)}
-.live{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);font-weight:600}
+.live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);font-weight:600}
+.head-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.refresh{width:32px;height:32px;border-radius:50%;background:rgba(148,163,184,.1);border:1px solid var(--stroke);
+  color:var(--txt);font-size:17px;padding:0;display:flex;align-items:center;justify-content:center}
+.refresh:hover{background:rgba(99,102,241,.25);border-color:var(--ind)}
+.refresh.spin{animation:spin .7s linear}
+@keyframes spin{to{transform:rotate(360deg)}}
 .rings{position:relative;width:12px;height:12px}
 .rings i{position:absolute;inset:0;border-radius:50%;background:#22c55e}
 .rings i:last-child{animation:ring 1.8s ease-out infinite;background:transparent;border:2px solid #22c55e}
@@ -360,7 +366,7 @@ button:active{transform:scale(.96)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .note{text-align:center;font-size:12.5px;color:var(--mut);margin-top:4px}
 .note b{color:#fbbf24}
-.foot{text-align:center;font-size:11.5px;color:#4b5878;margin-top:26px;letter-spacing:.04em}
+
 @media(max-width:560px){.mdate{display:none}.stats{grid-template-columns:repeat(3,1fr)}.stat .t{font-size:10px}}
 </style>
 </head>
@@ -401,13 +407,15 @@ button:active{transform:scale(.96)}
   <div class="card rise" style="animation-delay:.45s">
     <div class="inbox-head">
       <h2>Kotak Masuk</h2><span class="badge" id="count">0</span>
-      <span class="live"><span class="rings"><i></i><i></i></span>live</span>
+      <span class="head-right">
+        <button class="refresh" id="refreshBtn" onclick="manualRefresh()" title="Refresh inbox">↻</button>
+        <span class="live"><span class="rings"><i></i><i></i></span>live</span>
+      </span>
     </div>
     <div id="list"></div>
   </div>
 
   <div class="note">⏱️ Email terhapus otomatis setelah <b>2 jam</b>. Jangan pakai untuk hal penting.</div>
-  <div class="foot">TEMPMail PRO • Cloudflare Workers + KV • __DOMAIN__</div>
 </div>
 
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
@@ -444,6 +452,11 @@ function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+}
+function manualRefresh(){
+  const b = document.getElementById("refreshBtn");
+  b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin");
+  load();
 }
 /* scramble reveal animation */
 function scramble(el, text){
