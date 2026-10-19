@@ -46,6 +46,7 @@ Layanan email sementara ala temp-mail.org, jalan 100% gratis di Cloudflare Worke
 
 - `GET /api/inbox?address=email@domain` → daftar email (maks 50)
 - `GET /api/read?address=email@domain&id=xxx` → isi lengkap satu email
+- `DELETE /api/delete?address=email@domain&id=xxx` → hapus satu email manual
 
 ## Batasan
 
