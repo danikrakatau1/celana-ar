@@ -1,4 +1,4 @@
-name = "celana-ar-tempmail"
+name = "celana-ar"
 main = "worker.js"
 compatibility_date = "2026-10-01"
 
@@ -12,7 +12,7 @@ class_name = "InboxStore"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["InboxStore"]
+new_sqlite_classes = ["InboxStore"]
 
 # KV lama (tidak dipakai lagi sejak migrasi Durable Objects 2026-10-19;
 # data lama expired sendiri max 2 jam). ID arsip: c17238a26010462e8a47cbc20f3b3cbc
