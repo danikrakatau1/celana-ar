@@ -246,9 +246,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans
 .brand{font-size:18px;font-weight:800;letter-spacing:.01em}
 .brand em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ver{font-size:10px;font-weight:800;color:#04060d;background:var(--grad);border-radius:6px;padding:3px 7px;letter-spacing:.08em}
-.domain-pill{margin-left:auto;font-size:12px;color:#c7d2fe;background:rgba(99,102,241,.14);
-  border:1px solid rgba(99,102,241,.35);padding:6px 13px;border-radius:999px;font-weight:600;
-  box-shadow:0 0 18px rgba(99,102,241,.25) inset}
+.clock{margin-left:auto;font-size:14px;color:#e0e7ff;background:rgba(99,102,241,.14);
+  border:1px solid rgba(99,102,241,.35);padding:6px 15px;border-radius:999px;font-weight:800;
+  font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em;
+  box-shadow:0 0 18px rgba(99,102,241,.25) inset;white-space:nowrap}
 /* ---------- layout ---------- */
 .wrap{max-width:780px;margin:0 auto;padding:28px 20px 60px}
 .card{background:rgba(148,163,184,.055);border:1px solid var(--stroke);border-radius:20px;
@@ -392,7 +393,7 @@ button:active{transform:scale(.96)}
     <defs><linearGradient id="lg" x1="3" y1="5" x2="21" y2="19"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
   </svg>
   <span class="brand">Temp<em>Mail</em></span><span class="ver">PRO</span>
-  <span class="domain-pill">__DOMAIN__</span>
+  <span class="clock" id="clock">--.--.--</span>
 </div></div>
 
 <div class="wrap">
@@ -683,8 +684,22 @@ function closeModal(){
   document.body.style.overflow = "";
 }
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
+function tickClock(){
+  const el = document.getElementById("clock");
+  if(!el) return;
+  try{
+    el.textContent = new Date().toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    }) + " WIB";
+  }catch(e){
+    const n = new Date(), p = function(x){ return (x < 10 ? "0" + x : x); };
+    const w = new Date(n.getTime() + (420 + n.getTimezoneOffset()) * 60000);
+    el.textContent = p(w.getHours()) + "." + p(w.getMinutes()) + "." + p(w.getSeconds()) + " WIB";
+  }
+}
 renderDomSel(); renderAddr(true);
 document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
+tickClock(); setInterval(tickClock, 1000);
 load();
 setInterval(load, 8000);
 </script>
