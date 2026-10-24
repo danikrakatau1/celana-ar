@@ -24,3 +24,8 @@ new_sqlite_classes = ["InboxStore"]
 # [[routes]]
 # pattern = "mail.celana-ar-store.my.id/*"
 # zone_name = "celana-ar-store.my.id"
+
+# --- Static Assets: file pisah versi /anif ---
+# Tanpa binding = aset disajiin dulu, sisanya jatuh ke Worker (/, /api/*, /lite tetap jalan).
+[assets]
+directory = "./public"

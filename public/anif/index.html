@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TempMail — celana-ar-store.my.id</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/anif/style.css">
+</head>
+<body>
+<div class="bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="grid"></div></div>
+
+<div class="topbar"><div class="topbar-in">
+  <svg class="logo-anim" width="30" height="30" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="5" width="18" height="14" rx="3" stroke="url(#lg)" stroke-width="1.8"/>
+    <path d="M4.5 7.5l7.5 5.5 7.5-5.5" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <defs><linearGradient id="lg" x1="3" y1="5" x2="21" y2="19"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+  </svg>
+  <span class="brand">Temp<em>Mail</em></span><span class="ver">PRO</span>
+  <span class="clock" id="clock">--.--.--</span>
+</div></div>
+
+<div class="wrap">
+  <div class="card rise" style="animation-delay:.05s">
+    <div class="label">⚡ Alamat email sementara</div>
+    <div class="addrbox" id="addr" onclick="copyAddr(this)" title="Klik untuk salin">…</div>
+    <div class="domsel" id="domsel"></div>
+    <div class="btnrow">
+      <button class="btn-p" id="copyBtn" onclick="copyAddr(this)">📋 Salin Alamat</button>
+      <button class="btn-s" onclick="newAddr()">🎲 Alamat Baru</button>
+    </div>
+    <div class="customrow">
+      <input id="prefix" placeholder="Atau bikin nama sendiri, mis: belanja123" maxlength="64" onkeydown="if(event.key==='Enter')useCustom()">
+      <button class="btn-s" onclick="useCustom()">Pakai</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat" style="animation-delay:.15s"><span class="ic">⚡</span><span class="t">Instan<br>tanpa daftar</span></div>
+    <div class="stat" style="animation-delay:.25s"><span class="ic">🕐</span><span class="t">Hapus otomatis<br>setelah 2 jam</span></div>
+    <div class="stat" style="animation-delay:.35s"><span class="ic">🛡️</span><span class="t">100% gratis<br>tanpa kartu</span></div>
+  </div>
+
+  <div class="card rise" style="animation-delay:.45s">
+    <div class="inbox-head">
+      <h2>Kotak Masuk</h2><span class="badge" id="count">0</span>
+      <span class="head-right">
+        <button class="refresh" id="muteBtn" onclick="toggleMute()" title="Suara notifikasi">🔔</button>
+        <button class="refresh" id="refreshBtn" onclick="manualRefresh()" title="Refresh inbox">↻</button>
+        <span class="live"><span class="rings"><i></i><i></i></span>live</span>
+      </span>
+    </div>
+    <div class="searchrow"><input id="q" placeholder="🔍 Cari pengirim / subjek..." oninput="paint()"></div>
+    <div id="list"></div>
+  </div>
+
+  <div class="note">⏱️ Email terhapus otomatis setelah <b>2 jam</b>. Jangan pakai untuk hal penting.</div>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="mbox">
+    <button class="x" onclick="closeModal()">✕</button>
+    <div class="mhead"><h3 id="mSubj"></h3><div class="mmeta" id="mMeta"></div></div>
+    <div class="mbody" id="mBody"></div>
+    <div class="mfoot"><button class="btn-s" onclick="closeModal()">Tutup</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/anif/app.js"></script>
+</body>
+</html>
