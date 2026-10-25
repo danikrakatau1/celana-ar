@@ -225,22 +225,7 @@ async function load(){
   }
   firstLoad = false;
 }
-setInterval(function(){
-  const now = Date.now();
-  const els = document.querySelectorAll(".cd[data-exp]");
-  for(let i = 0; i < els.length; i++){
-    const exp = parseInt(els[i].getAttribute("data-exp"), 10) || 0;
-    let s = Math.max(0, Math.floor((exp - now) / 1000));
-    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
-    els[i].textContent = "⏱" + h + ":" + (m < 10 ? "0" + m : m) + ":" + (ss < 10 ? "0" + ss : ss);
-  }
-  const bars = document.querySelectorAll(".expbar i[data-expbar]");
-  for(let i = 0; i < bars.length; i++){
-    const exp = parseInt(bars[i].getAttribute("data-expbar"), 10) || 0;
-    const pct = Math.max(0, Math.min(100, (exp - now) / 7200000 * 100));
-    bars[i].style.width = pct + "%";
-  }
-}, 1000);
+
 async function readMail(id){
   const r = await fetch("/api/read?address=" + encodeURIComponent(address) + "&id=" + encodeURIComponent(id));
   const j = await r.json();
@@ -267,7 +252,7 @@ function tickClock(){
 }
 renderDomSel(); renderAddr(true);
 document.getElementById("muteBtn").textContent = muted ? "🔕" : "🔔";
-tickClock(); setInterval(tickClock, 1000);
+tickClock(); // ticker 1 detik DIMATIKAN buat test (jam beku di waktu load)
 load();
 setInterval(load, 8000);
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") load(); });
