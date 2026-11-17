@@ -80,10 +80,11 @@ button:active{transform:scale(.96)}
   outline:none;background:rgba(4,6,13,.5);color:var(--txt);font-family:inherit;transition:border-color .2s,box-shadow .2s}
 .customrow input:focus{border-color:var(--ind);box-shadow:0 0 0 3px rgba(99,102,241,.25)}
 .customrow input::placeholder{color:#5b6a8c}
-.domsel{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.domsel button{flex:1;min-width:0;background:rgba(148,163,184,.08);border:1px solid var(--stroke);color:var(--mut);
-  font-size:12.5px;font-weight:700;padding:9px 10px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.domsel button.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 2px 14px rgba(99,102,241,.45)}
+.domsel{margin-bottom:14px}
+.domsel select{width:100%;background:rgba(148,163,184,.08);border:1px solid var(--stroke);color:var(--txt);
+  font-size:14px;font-weight:700;padding:11px 12px;border-radius:12px;outline:none;cursor:pointer}
+.domsel select:focus{border-color:rgba(99,102,241,.65)}
+.domsel select option{background:#0b1120;color:#e2e8f0;font-weight:600}
 /* ---------- stats (LITE: tanpa backdrop-filter) ---------- */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
 .stat{background:rgba(13,19,36,.94);border:1px solid var(--stroke);border-radius:14px;padding:13px 8px;
