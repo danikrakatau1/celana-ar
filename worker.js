@@ -197,64 +197,72 @@ async function checkClearance(request, secret) {
   return (await hmacB64(secret, "clear:" + exp)) === parts[1];
 }
 
+function pageShell(title, inner) {
+  return "<!DOCTYPE html><html lang=\"id\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>" + title + "</title>" +
+  "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>" +
+  "<link href=\"https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap\" rel=\"stylesheet\">" +
+  "<style>" +
+  "*{box-sizing:border-box;margin:0;padding:0}" +
+  "body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(900px 500px at 88% -8%,rgba(99,102,241,.20),transparent 62%),radial-gradient(760px 520px at -12% 108%,rgba(13,148,136,.14),transparent 62%),#070a14;color:#eef2fd;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 18px;-webkit-font-smoothing:antialiased}" +
+  ".card{width:100%;max-width:430px;background:linear-gradient(180deg,rgba(148,163,184,.08),rgba(148,163,184,.035));border:1px solid rgba(148,163,184,.18);border-radius:24px;padding:38px 32px 30px;box-shadow:0 24px 60px rgba(2,6,17,.6);text-align:center}" +
+  ".brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:26px}" +
+  ".brand .name{font-size:20px;font-weight:800;letter-spacing:-.02em}" +
+  ".brand .name em{font-style:normal;background:linear-gradient(135deg,#6366f1,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}" +
+  ".pro{font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#fff;background:linear-gradient(135deg,#6366f1,#22d3ee);padding:3px 7px;border-radius:99px}" +
+  ".spin{width:42px;height:42px;border-radius:50%;border:3.5px solid rgba(99,102,241,.22);border-top-color:#6366f1;margin:2px auto 20px;animation:sp .9s linear infinite}" +
+  "@keyframes sp{to{transform:rotate(360deg)}}" +
+  ".shield{font-size:40px;line-height:1;margin-bottom:16px}" +
+  "h1{font-size:21px;font-weight:800;letter-spacing:-.015em;margin-bottom:10px}" +
+  "p.desc{color:#93a1c0;font-size:14px;line-height:1.7;margin-bottom:22px}" +
+  ".ts{display:flex;justify-content:center;min-height:66px}" +
+  "#st{margin-top:18px;font-size:13px;color:#93a1c0;min-height:18px;font-weight:600}" +
+  ".meta{margin-top:24px;padding-top:18px;border-top:1px solid rgba(148,163,184,.14);font-size:11.5px;color:#64748f;display:flex;align-items:center;justify-content:center;gap:6px}" +
+  ".foot{margin-top:20px;font-size:11.5px;color:#475569}" +
+  "</style></head><body>" + inner + "</body></html>";
+}
+
+function brandRow() {
+  return "<div class=\"brand\">" +
+  "<svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\" stroke=\"url(#lg)\" stroke-width=\"1.8\"/><path d=\"M4.5 7.5l7.5 5.5 7.5-5.5\" stroke=\"url(#lg)\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><defs><linearGradient id=\"lg\" x1=\"3\" y1=\"5\" x2=\"21\" y2=\"19\"><stop stop-color=\"#6366f1\"/><stop offset=\"1\" stop-color=\"#22d3ee\"/></linearGradient></defs></svg>" +
+  "<span class=\"name\">Temp<em>Mail</em></span><span class=\"pro\">PRO</span></div>";
+}
+
 function botWall() {
-  const html = "<!DOCTYPE html><html lang=\"id\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>403 — Khusus Manusia</title><style>body{background:#070a14;color:#e2e8f0;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center;padding:20px}div{max-width:420px}h1{font-size:46px;margin:0 0 10px}p{color:#94a3b8;line-height:1.65}</style></head><body><div><h1>🤖🚫</h1><p><b>Ups, ketahuan.</b></p><p>Halaman ini khusus manusia. Bot, crawler AI, dan skrip otomatis tidak dipersilakan masuk.</p></div></body></html>";
-  return new Response(html, { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
+  const inner = "<div class=\"card\">" + brandRow() +
+    "<div class=\"shield\">🛡️</div>" +
+    "<h1>Akses Ditolak</h1>" +
+    "<p class=\"desc\">Permintaan Anda terdeteksi sebagai lalu lintas otomatis (bot atau crawler) dan tidak dapat kami layani. Layanan ini hanya dapat diakses melalui browser standar.</p>" +
+    "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare</div></div>" +
+    "<div class=\"foot\">© 2026 celana-ar-store.my.id</div>";
+  return new Response(pageShell("403 — Akses Ditolak · TempMail PRO", inner), { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
 function gatePage(dest) {
-  const html = `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Memeriksa Browser — TempMail PRO</title>
-<style>
-body{background:#070a14;color:#eef2fd;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;margin:0;display:flex;align-items:center;justify-content:center;padding:20px}
-.box{max-width:400px;width:100%;text-align:center;background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.16);border-radius:20px;padding:34px 26px}
-.ic{font-size:42px}
-h1{font-size:20px;margin:14px 0 8px}
-p{color:#93a1c0;font-size:14px;line-height:1.65;margin:0 0 20px}
-.ts{display:flex;justify-content:center;min-height:66px}
-#st{margin-top:16px;font-size:13px;color:#93a1c0;min-height:18px}
-.spin{width:34px;height:34px;border-radius:50%;border:3.5px solid rgba(99,102,241,.25);border-top-color:#6366f1;margin:0 auto 6px;animation:sp 0.9s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-</style>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-</head>
-<body>
-<div class="box">
-  <div class="spin"></div>
-  <h1>Sebentar, lagi dicek dulu 🛡️</h1>
-  <p>Kami memastikan kamu manusia beneran, bukan bot. Biasanya cuma 2–3 detik — kalau muncul kotak verifikasi, selesaikan aja ya.</p>
-  <div class="ts"><div class="cf-turnstile" data-sitekey="${TS_SITE_KEY}" data-callback="onTs" data-theme="dark"></div></div>
-  <div id="st">Menunggu verifikasi…</div>
-</div>
-<script>
-var DEST = ${JSON.stringify(dest)};
-function signals() {
-  var s = { webdriver: !!navigator.webdriver, plugins: navigator.plugins ? navigator.plugins.length : -1, langs: navigator.languages ? navigator.languages.length : 0, renderer: "" };
-  try {
-    var c = document.createElement("canvas");
-    var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
-    if (gl) { var e = gl.getExtension("WEBGL_debug_renderer_info"); s.renderer = e ? String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)) : "?"; }
-  } catch (err) { s.renderer = "err"; }
-  return s;
-}
-function onTs(token) {
-  var st = document.getElementById("st");
-  st.textContent = "Memverifikasi…";
-  fetch("/__verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: token, sig: signals() }) })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d && d.ok) { st.textContent = "Lolos! Membuka TempMail…"; location.replace(DEST); }
-      else { st.textContent = "Verifikasi gagal — coba lagi ya."; if (window.turnstile) turnstile.reset(); }
-    })
-    .catch(function () { st.textContent = "Koneksi bermasalah — coba lagi ya."; if (window.turnstile) turnstile.reset(); });
-}
-</script>
-</body>
-</html>`;
+  const inner = "<div class=\"card\">" + brandRow() +
+    "<div class=\"spin\"></div>" +
+    "<h1>Verifikasi Keamanan</h1>" +
+    "<p class=\"desc\">Untuk melindungi layanan dari penyalahgunaan dan akses otomatis, kami perlu memastikan bahwa Anda bukan bot. Proses ini biasanya selesai dalam beberapa detik. Apabila diminta, silakan selesaikan verifikasi pada kotak di bawah ini.</p>" +
+    "<div class=\"ts\"><div class=\"cf-turnstile\" data-sitekey=\"" + TS_SITE_KEY + "\" data-callback=\"onTs\" data-theme=\"dark\"></div></div>" +
+    "<div id=\"st\">Menunggu verifikasi…</div>" +
+    "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare Turnstile</div></div>" +
+    "<div class=\"foot\">© 2026 celana-ar-store.my.id</div>";
+  const script = "<script src=\"https://challenges.cloudflare.com/turnstile/v0/api.js\" async defer></script>" +
+  "<script>" +
+  "var DEST = " + JSON.stringify(dest) + ";" +
+  "function signals(){" +
+  "var s={webdriver:!!navigator.webdriver,plugins:navigator.plugins?navigator.plugins.length:-1,langs:navigator.languages?navigator.languages.length:0,renderer:''};" +
+  "try{var c=document.createElement('canvas');var gl=c.getContext('webgl')||c.getContext('experimental-webgl');" +
+  "if(gl){var e=gl.getExtension('WEBGL_debug_renderer_info');s.renderer=e?String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)):'?';}}catch(err){s.renderer='err';}" +
+  "return s;}" +
+  "function onTs(token){" +
+  "var st=document.getElementById('st');st.textContent='Sedang memverifikasi…';" +
+  "fetch('/__verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token,sig:signals()})})" +
+  ".then(function(r){return r.json();})" +
+  ".then(function(d){if(d&&d.ok){st.textContent='Verifikasi berhasil. Anda akan dialihkan…';location.replace(DEST);}" +
+  "else{st.textContent='Verifikasi belum berhasil. Silakan coba lagi.';if(window.turnstile)turnstile.reset();}})" +
+  ".catch(function(){st.textContent='Terjadi gangguan koneksi. Silakan coba lagi.';if(window.turnstile)turnstile.reset();});}" +
+  "</script>";
+  const html = pageShell("Verifikasi Keamanan — TempMail PRO", inner).replace("</body>", script + "</body>");
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
