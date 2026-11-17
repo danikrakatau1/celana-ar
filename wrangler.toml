@@ -21,9 +21,12 @@ new_sqlite_classes = ["InboxStore"]
 # Cara 1 (disarankan): dashboard Worker > Settings > Domains & Routes
 #          > Add Custom Domain, misal: mail.celana-ar-store.my.id
 # Cara 2: uncomment blok di bawah ini lalu push ulang
-# [[routes]]
-# pattern = "mail.celana-ar-store.my.id/*"
-# zone_name = "celana-ar-store.my.id"
+# Domain utama dilayani Worker lewat route ini (sejak 17 Nov 2026 TempMail
+# pindah ke domain utama; host mail.* tetap custom domain + redirect 301
+# di worker.js).
+[[routes]]
+pattern = "celana-ar-store.my.id/*"
+zone_name = "celana-ar-store.my.id"
 
 # --- Static Assets: file pisah versi /anif ---
 # Tanpa binding = aset disajiin dulu, sisanya jatuh ke Worker (/, /api/*, /lite tetap jalan).
