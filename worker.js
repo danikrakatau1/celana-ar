@@ -158,6 +158,136 @@ function extractBody(raw) {
   return decoded.slice(0, MAX_BODY);
 }
 
+/* ---------------- gerbang anti-bot (Turnstile) ----------------
+   Aktif hanya bila env.TURNSTILE_SECRET terpasang (dashboard Worker).
+   Tanpa secret = gerbang nonaktif (masa pemasangan aman).
+   Manusia: Turnstile managed (diam-diam / interaktif bila mencurigakan)
+   -> cookie izin HMAC 24 jam. Bot UA dikenal -> 403 langsung.
+   Sinyal otomatisasi keras (webdriver, renderer headless) -> ditolak
+   walau token Turnstile valid. */
+const TS_SITE_KEY = "0x4AAAAAAGE_iDGyGCGuXDB7";
+const CLEAR_COOKIE = "tm_clear";
+const CLEAR_TTL = 86400;
+const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
+const RL = new Map();
+
+function isBotUA(request) {
+  return BOT_UA.test(request.headers.get("user-agent") || "");
+}
+
+async function hmacB64(secret, msg) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function makeClearance(secret) {
+  const exp = Math.floor(Date.now() / 1000) + CLEAR_TTL;
+  return exp + "." + (await hmacB64(secret, "clear:" + exp));
+}
+
+async function checkClearance(request, secret) {
+  const cookie = request.headers.get("cookie") || "";
+  const m = cookie.match(new RegExp("(?:^|; )" + CLEAR_COOKIE + "=([^;]+)"));
+  if (!m) return false;
+  const parts = decodeURIComponent(m[1]).split(".");
+  if (parts.length !== 2) return false;
+  const exp = parseInt(parts[0], 10);
+  if (!exp || exp < Math.floor(Date.now() / 1000)) return false;
+  return (await hmacB64(secret, "clear:" + exp)) === parts[1];
+}
+
+function botWall() {
+  const html = "<!DOCTYPE html><html lang=\"id\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>403 — Khusus Manusia</title><style>body{background:#070a14;color:#e2e8f0;font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center;padding:20px}div{max-width:420px}h1{font-size:46px;margin:0 0 10px}p{color:#94a3b8;line-height:1.65}</style></head><body><div><h1>🤖🚫</h1><p><b>Ups, ketahuan.</b></p><p>Halaman ini khusus manusia. Bot, crawler AI, dan skrip otomatis tidak dipersilakan masuk.</p></div></body></html>";
+  return new Response(html, { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
+function gatePage(dest) {
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memeriksa Browser — TempMail PRO</title>
+<style>
+body{background:#070a14;color:#eef2fd;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;margin:0;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{max-width:400px;width:100%;text-align:center;background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.16);border-radius:20px;padding:34px 26px}
+.ic{font-size:42px}
+h1{font-size:20px;margin:14px 0 8px}
+p{color:#93a1c0;font-size:14px;line-height:1.65;margin:0 0 20px}
+.ts{display:flex;justify-content:center;min-height:66px}
+#st{margin-top:16px;font-size:13px;color:#93a1c0;min-height:18px}
+.spin{width:34px;height:34px;border-radius:50%;border:3.5px solid rgba(99,102,241,.25);border-top-color:#6366f1;margin:0 auto 6px;animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+<div class="box">
+  <div class="spin"></div>
+  <h1>Sebentar, lagi dicek dulu 🛡️</h1>
+  <p>Kami memastikan kamu manusia beneran, bukan bot. Biasanya cuma 2–3 detik — kalau muncul kotak verifikasi, selesaikan aja ya.</p>
+  <div class="ts"><div class="cf-turnstile" data-sitekey="${TS_SITE_KEY}" data-callback="onTs" data-theme="dark"></div></div>
+  <div id="st">Menunggu verifikasi…</div>
+</div>
+<script>
+var DEST = ${JSON.stringify(dest)};
+function signals() {
+  var s = { webdriver: !!navigator.webdriver, plugins: navigator.plugins ? navigator.plugins.length : -1, langs: navigator.languages ? navigator.languages.length : 0, renderer: "" };
+  try {
+    var c = document.createElement("canvas");
+    var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+    if (gl) { var e = gl.getExtension("WEBGL_debug_renderer_info"); s.renderer = e ? String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)) : "?"; }
+  } catch (err) { s.renderer = "err"; }
+  return s;
+}
+function onTs(token) {
+  var st = document.getElementById("st");
+  st.textContent = "Memverifikasi…";
+  fetch("/__verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: token, sig: signals() }) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.ok) { st.textContent = "Lolos! Membuka TempMail…"; location.replace(DEST); }
+      else { st.textContent = "Verifikasi gagal — coba lagi ya."; if (window.turnstile) turnstile.reset(); }
+    })
+    .catch(function () { st.textContent = "Koneksi bermasalah — coba lagi ya."; if (window.turnstile) turnstile.reset(); });
+}
+</script>
+</body>
+</html>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+async function handleVerify(request, env) {
+  if (isBotUA(request)) return json({ ok: false, error: "bot" }, 403);
+  let body = {};
+  try { body = await request.json(); } catch {}
+  const token = body.token || "";
+  const sig = body.sig || {};
+  if (!token) return json({ ok: false }, 400);
+  if (sig.webdriver === true) return json({ ok: false, error: "automation" }, 403);
+  if (typeof sig.renderer === "string" && /(swiftshader|llvmpipe)/i.test(sig.renderer)) return json({ ok: false, error: "headless" }, 403);
+  const form = new FormData();
+  form.append("secret", env.TURNSTILE_SECRET);
+  form.append("response", token);
+  const ip = request.headers.get("cf-connecting-ip");
+  if (ip) form.append("remoteip", ip);
+  let ok = false;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+    const d = await r.json();
+    ok = !!d.success;
+  } catch {}
+  if (!ok) return json({ ok: false }, 403);
+  const val = await makeClearance(env.TURNSTILE_SECRET);
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: {
+      "content-type": "application/json",
+      "set-cookie": CLEAR_COOKIE + "=" + encodeURIComponent(val) + "; Path=/; Max-Age=" + CLEAR_TTL + "; HttpOnly; Secure; SameSite=Lax",
+    },
+  });
+}
+
 /* ---------------- email handler ---------------- */
 
 async function handleEmail(message, env) {
@@ -222,6 +352,36 @@ export default {
     const domains = (env.DOMAINS || env.DOMAIN || "celana-ar-store.my.id")
       .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
     const primary = domains[0];
+
+    // --- gerbang anti-bot (aktif hanya bila secret Turnstile terpasang) ---
+    if (env.TURNSTILE_SECRET) {
+      if (url.pathname === "/__gate") {
+        if (isBotUA(request)) return botWall();
+        const to = url.searchParams.get("to") || "/";
+        const dest = to.startsWith("/") && !to.startsWith("//") ? to : "/";
+        return gatePage(dest);
+      }
+      if (url.pathname === "/__verify" && request.method === "POST") {
+        return handleVerify(request, env);
+      }
+      const isApi = url.pathname.startsWith("/api/");
+      const accept = request.headers.get("accept") || "";
+      const isDoc = request.method === "GET" && (accept.includes("text/html") || url.pathname === "/" || url.pathname === "/anif/" || url.pathname.endsWith(".html"));
+      if (isApi || isDoc) {
+        if (isBotUA(request)) return isApi ? json({ error: "bot tidak diizinkan" }, 403) : botWall();
+        if (!(await checkClearance(request, env.TURNSTILE_SECRET))) {
+          if (isApi) return json({ error: "perlu verifikasi", gate: "/__gate" }, 403);
+          return Response.redirect(new URL("/__gate?to=" + encodeURIComponent(url.pathname + url.search), request.url).toString(), 302);
+        }
+        if (isApi) {
+          const ip = request.headers.get("cf-connecting-ip") || "x";
+          const now = Date.now();
+          const rec = RL.get(ip);
+          if (rec && now < rec.reset && rec.n >= 240) return json({ error: "terlalu cepat, santai dulu" }, 429);
+          if (!rec || now >= rec.reset) RL.set(ip, { n: 1, reset: now + 60000 }); else rec.n++;
+        }
+      }
+    }
 
     if (url.pathname === "/api/inbox") {
       const address = (url.searchParams.get("address") || "").toLowerCase().trim();
