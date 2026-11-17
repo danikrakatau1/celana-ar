@@ -1,5 +1,5 @@
 /**
- * TempMail Worker — celana-ar-store.my.id
+ * TempMail Worker — moai.my.id
  *
  * 1. Email masuk via Cloudflare Email Routing (catch-all -> "Send to a Worker")
  *    disimpan ke Durable Object (strongly consistent, tanpa delay replikasi KV),
@@ -165,7 +165,7 @@ function extractBody(raw) {
    -> cookie izin HMAC 24 jam. Bot UA dikenal -> 403 langsung.
    Sinyal otomatisasi keras (webdriver, renderer headless) -> ditolak
    walau token Turnstile valid. */
-const TS_SITE_KEY = "0x4AAAAAAGE_iDGyGCGuXDB7";
+const TS_SITE_KEY = "0x4AAAAAAGFDhp4eMUo9VAUW";
 const CLEAR_COOKIE = "tm_clear";
 const CLEAR_TTL = 86400;
 const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
@@ -233,7 +233,7 @@ function botWall() {
     "<h1>Akses Ditolak</h1>" +
     "<p class=\"desc\">Permintaan Anda terdeteksi sebagai lalu lintas otomatis (bot atau crawler) dan tidak dapat kami layani. Layanan ini hanya dapat diakses melalui browser standar.</p>" +
     "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare</div></div>" +
-    "<div class=\"foot\">© 2026 celana-ar-store.my.id</div>";
+    "<div class=\"foot\">© 2026 moai.my.id</div>";
   return new Response(pageShell("403 — Akses Ditolak · TempMail PRO", inner), { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
@@ -245,7 +245,7 @@ function gatePage(dest) {
     "<div class=\"ts\"><div class=\"cf-turnstile\" data-sitekey=\"" + TS_SITE_KEY + "\" data-callback=\"onTs\" data-theme=\"dark\"></div></div>" +
     "<div id=\"st\">Menunggu verifikasi…</div>" +
     "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare Turnstile</div></div>" +
-    "<div class=\"foot\">© 2026 celana-ar-store.my.id</div>";
+    "<div class=\"foot\">© 2026 moai.my.id</div>";
   const script = "<script src=\"https://challenges.cloudflare.com/turnstile/v0/api.js\" async defer></script>" +
   "<script>" +
   "var DEST = " + JSON.stringify(dest) + ";" +
@@ -353,11 +353,11 @@ export default {
     const url = new URL(request.url);
     // TempMail pindah ke domain utama (17 Nov 2026): host mail.* lama
     // dialihkan permanen ke domain utama, path + query dipertahankan.
-    if (url.hostname === "mail.celana-ar-store.my.id") {
-      url.hostname = "celana-ar-store.my.id";
+    if (url.hostname === "mail.celana-ar-store.my.id" || url.hostname === "celana-ar-store.my.id") {
+      url.hostname = "moai.my.id";
       return Response.redirect(url.toString(), 301);
     }
-    const domains = (env.DOMAINS || env.DOMAIN || "celana-ar-store.my.id")
+    const domains = (env.DOMAINS || env.DOMAIN || "moai.my.id")
       .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
     const primary = domains[0];
 
