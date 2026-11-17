@@ -295,10 +295,11 @@ button:active{transform:scale(.96)}
   outline:none;background:rgba(4,6,13,.5);color:var(--txt);font-family:inherit;transition:border-color .2s,box-shadow .2s}
 .customrow input:focus{border-color:var(--ind);box-shadow:0 0 0 3px rgba(99,102,241,.25)}
 .customrow input::placeholder{color:#5b6a8c}
-.domsel{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.domsel button{flex:1;min-width:0;background:rgba(148,163,184,.08);border:1px solid var(--stroke);color:var(--mut);
-  font-size:12.5px;font-weight:700;padding:9px 10px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.domsel button.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 2px 14px rgba(99,102,241,.45)}
+.domsel{margin-bottom:14px}
+.domsel select{width:100%;background:rgba(148,163,184,.08);border:1px solid var(--stroke);color:#e2e8f0;
+  font-size:14px;font-weight:700;padding:11px 12px;border-radius:12px;outline:none;cursor:pointer}
+.domsel select:focus{border-color:rgba(99,102,241,.65)}
+.domsel select option{background:#0b1120;color:#e2e8f0;font-weight:600}
 /* ---------- stats (LITE: tanpa backdrop-filter) ---------- */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
 .stat{background:rgba(13,19,36,.94);border:1px solid var(--stroke);border-radius:14px;padding:13px 8px;
@@ -466,9 +467,9 @@ const _ad = address ? address.split("@")[1] : null;
 if(!domain || DOMAINS.indexOf(domain) === -1) domain = (_ad && DOMAINS.indexOf(_ad) !== -1) ? _ad : DOMAINS[0];
 if(!address || address.split("@")[1] !== domain){ address = rand() + "@" + domain; localStorage.setItem("tm_addr", address); }
 function renderDomSel(){
-  document.getElementById("domsel").innerHTML = DOMAINS.map(function(d){
-    return '<button class="' + (d === domain ? "on" : "") + '" onclick="setDomain(\\'' + d + '\\')">' + esc(d) + "</button>";
-  }).join("");
+  document.getElementById("domsel").innerHTML = '<select id="dompick" onchange="setDomain(this.value)">' + DOMAINS.map(function(d){
+    return '<option value="' + esc(d) + '"' + (d === domain ? " selected" : "") + ">" + esc(d) + "</option>";
+  }).join("") + "</select>";
 }
 function setDomain(d){
   const local = address.split("@")[0];
