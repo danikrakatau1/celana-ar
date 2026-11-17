@@ -1,14 +1,26 @@
 
-const DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id".split(",");
+let DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id,anif-tools.my.id,4n1f-tutorial.my.id,4n1f.my.id,4n1f-tutorial.web.id,4nif.my.id,anif.biz.id,anif.my.id,anif-promo.my.id,anifstore.my.id,celanaar.biz.id,celanaar.my.id,celana-arstore.biz.id,celana-arstore.my.id,celana-arstore.web.id,celanaar.web.id,dinzzz.my.id,moai.my.id,official-arstore.my.id,shopee-arstore.biz.id,shopee-arstore.my.id,tiktok-arstore.my.id,tiktok-arstore.web.id,toko-arstore.my.id,undangankuuu.my.id,vardz.my.id".split(",");
+/* Daftar domain otoritatif dari Worker (env DOMAINS) — fallback di atas hanya cadangan. */
+fetch("/api/domains").then(function(r){ return r.json(); }).then(function(d){
+  if(d && d.domains && d.domains.length){
+    DOMAINS = d.domains;
+    if(DOMAINS.indexOf(domain) === -1){
+      domain = DOMAINS[0]; address = rand() + "@" + domain;
+      localStorage.setItem("tm_dom", domain); localStorage.setItem("tm_addr", address);
+      renderAddr(true);
+    }
+    renderDomSel(); load();
+  }
+}).catch(function(){});
 let domain = localStorage.getItem("tm_dom");
 let address = localStorage.getItem("tm_addr");
 const _ad = address ? address.split("@")[1] : null;
 if(!domain || DOMAINS.indexOf(domain) === -1) domain = (_ad && DOMAINS.indexOf(_ad) !== -1) ? _ad : DOMAINS[0];
 if(!address || address.split("@")[1] !== domain){ address = rand() + "@" + domain; localStorage.setItem("tm_addr", address); }
 function renderDomSel(){
-  document.getElementById("domsel").innerHTML = DOMAINS.map(function(d){
-    return '<button class="' + (d === domain ? "on" : "") + '" onclick="setDomain(\'' + d + '\')">' + esc(d) + "</button>";
-  }).join("");
+  document.getElementById("domsel").innerHTML = '<select id="dompick" onchange="setDomain(this.value)">' + DOMAINS.map(function(d){
+    return '<option value="' + esc(d) + '"' + (d === domain ? " selected" : "") + ">" + esc(d) + "</option>";
+  }).join("") + "</select>";
 }
 function setDomain(d){
   const local = address.split("@")[0];
