@@ -1,4 +1,4 @@
-/* TempMail PRO — desain profesional v2 (17 Nov 2026) */
+/* TempMail PRO — desain profesional v2.1 ringan (17 Nov 2026) */
 :root{
   --bg:#070a14;
   --panel:rgba(148,163,184,.055);
@@ -29,23 +29,19 @@ body{
 ::-webkit-scrollbar-track{background:transparent}
 
 /* ---------- latar ---------- */
-.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:
-  radial-gradient(1100px 550px at 85% -10%,rgba(34,211,238,.10),transparent 60%),
-  radial-gradient(900px 600px at -10% 25%,rgba(99,102,241,.13),transparent 60%),
+.bg{position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(900px 500px at 88% -8%,rgba(99,102,241,.20),transparent 62%),
+  radial-gradient(760px 520px at -12% 88%,rgba(13,148,136,.15),transparent 62%),
+  radial-gradient(640px 420px at 55% 112%,rgba(34,211,238,.07),transparent 60%),
   var(--bg)}
 .bg .grid{position:absolute;inset:0;
   background-image:linear-gradient(rgba(148,163,184,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.05) 1px,transparent 1px);
   background-size:44px 44px;
   -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%);
           mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%)}
-.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:drift 26s ease-in-out infinite alternate}
-.o1{width:420px;height:420px;background:#4338ca;top:-160px;right:-80px}
-.o2{width:340px;height:340px;background:#0e7490;bottom:-140px;left:-100px;animation-delay:-8s}
-.o3{width:220px;height:220px;background:#6d28d9;top:44%;left:58%;opacity:.32;animation-delay:-16s}
-@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(-46px,34px) scale(1.08)}}
 
 /* ---------- topbar ---------- */
-.topbar{position:sticky;top:0;z-index:40;background:rgba(7,10,20,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--stroke)}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(7,10,20,.94);border-bottom:1px solid var(--stroke)}
 .topbar-in{max-width:860px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;gap:10px}
 .brandwrap{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--txt)}
 .logo-anim{flex:none;animation:floaty 5s ease-in-out infinite}
@@ -182,7 +178,7 @@ body{
 .footer .fsmall{color:var(--mut2);font-size:12px;margin-top:14px}
 
 /* ---------- modal & toast ---------- */
-.modal{position:fixed;inset:0;background:rgba(3,5,11,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
+.modal{position:fixed;inset:0;background:rgba(3,5,11,.78);display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
 .modal.open{display:flex}
 .mbox{background:#0b1120;border:1px solid var(--stroke2);border-radius:var(--r-lg);max-width:640px;width:100%;max-height:86vh;display:flex;flex-direction:column;padding:24px;position:relative;box-shadow:var(--shadow);animation:rise .3s ease both}
 .mbox .x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;background:var(--panel2);border:1px solid var(--stroke);color:var(--txt);cursor:pointer;font-size:13px}
