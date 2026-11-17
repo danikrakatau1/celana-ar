@@ -213,6 +213,12 @@ export default {
 
   async fetch(request, env) {
     const url = new URL(request.url);
+    // TempMail pindah ke domain utama (17 Nov 2026): host mail.* lama
+    // dialihkan permanen ke domain utama, path + query dipertahankan.
+    if (url.hostname === "mail.celana-ar-store.my.id") {
+      url.hostname = "celana-ar-store.my.id";
+      return Response.redirect(url.toString(), 301);
+    }
     const domains = (env.DOMAINS || env.DOMAIN || "celana-ar-store.my.id")
       .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
     const primary = domains[0];
