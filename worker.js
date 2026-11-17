@@ -15,6 +15,7 @@
 
 const TTL = 7200; // email kedaluwarsa 2 jam
 const MAX_BODY = 20000; // potong isi email
+const MAX_HTML = 120000; // potong versi HTML email
 const MAX_RAW = 512 * 1024; // baca raw maksimal 512 KB
 
 function json(data, status = 200) {
@@ -55,10 +56,7 @@ function decodeWords(s) {
             );
           bytes = Uint8Array.from(qp, (c) => c.charCodeAt(0));
         }
-        const cs = charset.toLowerCase();
-        return new TextDecoder(
-          cs === "iso-8859-1" || cs === "latin1" ? "latin1" : "utf-8"
-        ).decode(bytes);
+        return decodeBytes(bytes, charset);
       } catch {
         return text;
       }
@@ -66,31 +64,52 @@ function decodeWords(s) {
   );
 }
 
-function decodeBody(text, encoding) {
-  encoding = (encoding || "").toLowerCase().trim();
-  if (encoding === "base64") {
+function normCharset(cs) {
+  cs = String(cs || "utf-8").toLowerCase().trim().replace(/["']/g, "");
+  if (cs === "iso-8859-1" || cs === "latin1" || cs === "iso-8859-15" || cs === "us-ascii" || cs === "ascii") return "windows-1252";
+  return cs || "utf-8";
+}
+
+function decodeBytes(bytes, charset) {
+  try {
+    return new TextDecoder(normCharset(charset)).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
+// Isi email ditangani sebagai "byte string" (1 char = 1 byte) supaya charset
+// asli tiap bagian MIME tidak rusak sebelum sempat didekode menurut charset-nya.
+function byteStrToBytes(s) {
+  const b = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i) & 0xff;
+  return b;
+}
+
+function transferDecode(bodyStr, encoding) {
+  const enc = (encoding || "").toLowerCase().trim();
+  if (enc === "base64") {
     try {
-      const bin = atob(String(text).replace(/\s/g, ""));
-      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-      return new TextDecoder("utf-8").decode(bytes);
+      const bin = atob(String(bodyStr).replace(/\s/g, ""));
+      return Uint8Array.from(bin, (c) => c.charCodeAt(0));
     } catch {
-      return text;
+      return byteStrToBytes(String(bodyStr));
     }
   }
-  if (encoding === "quoted-printable") {
-    let t = String(text).replace(/=\r?\n/g, ""); // soft break
-    t = t.replace(/=([0-9A-Fa-f]{2})/g, (_, h) =>
-      String.fromCharCode(parseInt(h, 16))
-    );
-    try {
-      return new TextDecoder("utf-8").decode(
-        Uint8Array.from(t, (c) => c.charCodeAt(0))
-      );
-    } catch {
-      return t;
+  if (enc === "quoted-printable") {
+    const t = String(bodyStr).replace(/=\r?\n/g, ""); // soft break
+    const out = [];
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(t.substr(i + 1, 2))) {
+        out.push(parseInt(t.substr(i + 1, 2), 16));
+        i += 2;
+      } else {
+        out.push(t.charCodeAt(i) & 0xff);
+      }
     }
+    return Uint8Array.from(out);
   }
-  return text;
+  return byteStrToBytes(String(bodyStr));
 }
 
 function parseHeaders(raw) {
@@ -114,48 +133,87 @@ function parseHeaders(raw) {
   return { headers, body };
 }
 
+function decodeEntities(s) {
+  const named = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", copy: "©", reg: "®", trade: "™", hellip: "…", mdash: "—", ndash: "–", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", laquo: "«", raquo: "»", middot: "·", bull: "•", deg: "°", plusmn: "±", times: "×", divide: "÷", euro: "€", pound: "£", yen: "¥", cent: "¢", sect: "§", para: "¶" };
+  return String(s)
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return " "; } })
+    .replace(/&#(\d+);/g, (_, d) => { try { return String.fromCodePoint(parseInt(d, 10)); } catch { return " "; } })
+    .replace(/&([a-zA-Z]+);/g, (m, n) => (named[n.toLowerCase()] !== undefined ? named[n.toLowerCase()] : m));
+}
+
+// HTML -> teks polos dengan struktur paragraf & baris tetap terjaga.
 function stripHtml(html) {
-  return String(html)
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+  let t = String(html)
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6]|table|blockquote|section|article)>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n• ")
+    .replace(/<td[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "");
+  t = decodeEntities(t);
+  return t
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-function extractBody(raw) {
-  const { headers, body } = parseHeaders(raw);
-  const ct = (headers["content-type"] || "text/plain").toLowerCase();
-  const bm = ct.match(/boundary="?([^";\s]+)"?/);
-  if (bm) {
-    const boundary = bm[1];
-    const parts = body.split("--" + boundary);
-    let htmlFallback = "";
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed || trimmed === "--") continue;
-      const ph = parseHeaders(trimmed);
-      const pct = (ph.headers["content-type"] || "").toLowerCase();
-      const enc = ph.headers["content-transfer-encoding"] || "";
-      if (pct.includes("text/plain")) {
-        return decodeBody(ph.body, enc).slice(0, MAX_BODY);
-      }
-      if (pct.includes("text/html") && !htmlFallback) {
-        htmlFallback = decodeBody(ph.body, enc);
-      }
+function charsetOf(ct) {
+  const m = /charset="?([^";\s]+)"?/i.exec(ct || "");
+  return m ? m[1] : "utf-8";
+}
+
+// Telusuri MIME secara rekursif (multipart bertingkat) dan ambil bagian
+// text/plain + text/html pertama, masing-masing didekode menurut charset-nya.
+function extractParts(rawStr) {
+  const { headers, body } = parseHeaders(rawStr);
+  const ct = headers["content-type"] || "text/plain";
+  const ctl = ct.toLowerCase();
+  const bm = ct.match(/boundary="?([^";\s]+)"?/i);
+  if (ctl.startsWith("multipart/") && bm) {
+    let text = "";
+    let html = "";
+    for (const seg of body.split("--" + bm[1])) {
+      const part = seg.replace(/^\r?\n/, "").replace(/\r?\n$/, "");
+      if (!part || part.startsWith("--")) continue;
+      const sub = extractParts(part);
+      if (!text && sub.text) text = sub.text;
+      if (!html && sub.html) html = sub.html;
+      if (text && html) break;
     }
-    if (htmlFallback) return stripHtml(htmlFallback).slice(0, MAX_BODY);
+    return { text, html };
   }
   const enc = headers["content-transfer-encoding"] || "";
-  const decoded = decodeBody(body, enc);
-  if (ct.includes("text/html")) return stripHtml(decoded).slice(0, MAX_BODY);
-  return decoded.slice(0, MAX_BODY);
+  const decoded = decodeBytes(transferDecode(body, enc), charsetOf(ct));
+  if (ctl.includes("text/html")) return { text: "", html: decoded };
+  return { text: decoded, html: "" };
+}
+
+// Buang elemen berbahaya dari HTML email sebelum disimpan; tampilan akhir
+// dirender di iframe sandbox tanpa skrip.
+function sanitizeHtml(html) {
+  if (!html) return "";
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<object[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed[^>]*>/gi, "")
+    .replace(/<form[\s\S]*?<\/form>/gi, "")
+    .replace(/<base[^>]*>/gi, "")
+    .replace(/<link[^>]*>/gi, "")
+    .replace(/<meta[^>]*http-equiv[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"');
+}
+
+function extractBody(rawStr) {
+  const { text, html } = extractParts(rawStr);
+  let t = text;
+  if (!t && html) t = stripHtml(html);
+  return { text: t.slice(0, MAX_BODY), html: sanitizeHtml(html).slice(0, MAX_HTML) };
 }
 
 /* ---------------- gerbang anti-bot (Turnstile) ----------------
@@ -229,10 +287,10 @@ function brandRow() {
 
 function botWall() {
   const inner = "<div class=\"card\">" + brandRow() +
-    "<div class=\"shield\">🛡️</div>" +
+    "<div class=\"shield\"><svg width=\"44\" height=\"44\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#818cf8\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"m9 12 2 2 4-4\"/></svg></div>" +
     "<h1>Akses Ditolak</h1>" +
     "<p class=\"desc\">Permintaan Anda terdeteksi sebagai lalu lintas otomatis (bot atau crawler) dan tidak dapat kami layani. Layanan ini hanya dapat diakses melalui browser standar.</p>" +
-    "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare</div></div>" +
+    "<div class=\"meta\">Koneksi terenkripsi · Dilindungi Cloudflare</div></div>" +
     "<div class=\"foot\">© 2026 moai.my.id</div>";
   return new Response(pageShell("403 — Akses Ditolak · TempMail PRO", inner), { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
 }
@@ -244,7 +302,7 @@ function gatePage(dest) {
     "<p class=\"desc\">Untuk melindungi layanan dari penyalahgunaan dan akses otomatis, kami perlu memastikan bahwa Anda bukan bot. Proses ini biasanya selesai dalam beberapa detik. Apabila diminta, silakan selesaikan verifikasi pada kotak di bawah ini.</p>" +
     "<div class=\"ts\"><div class=\"cf-turnstile\" data-sitekey=\"" + TS_SITE_KEY + "\" data-callback=\"onTs\" data-theme=\"dark\"></div></div>" +
     "<div id=\"st\">Menunggu verifikasi…</div>" +
-    "<div class=\"meta\">🔒 Koneksi terenkripsi · Dilindungi Cloudflare Turnstile</div></div>" +
+    "<div class=\"meta\">Koneksi terenkripsi · Dilindungi Cloudflare Turnstile</div></div>" +
     "<div class=\"foot\">© 2026 moai.my.id</div>";
   const script = "<script src=\"https://challenges.cloudflare.com/turnstile/v0/api.js\" async defer></script>" +
   "<script>" +
@@ -319,17 +377,23 @@ async function handleEmail(message, env) {
       buf.set(c, off);
       off += c.byteLength;
     }
-    const raw = new TextDecoder("utf-8").decode(buf);
+    // Pertahankan byte asli sebagai byte string (1 char = 1 byte). Decode
+    // UTF-8 langsung di sini akan merusak bagian email ber-charset lain
+    // sebelum parser MIME sempat membaca charset-nya.
+    let raw = "";
+    for (let i = 0; i < buf.length; i += 8192) {
+      raw += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    }
 
     const { headers } = parseHeaders(raw);
     const from = decodeWords(headers["from"] || "(tidak dikenal)");
     const subject = decodeWords(headers["subject"] || "(tanpa subjek)");
     const date = headers["date"] || "";
-    const body = extractBody(raw);
+    const parts = extractBody(raw);
 
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const expiresAt = Date.now() + TTL * 1000;
-    const email = { id, from, to: toAddr, subject, date, body, expiresAt, receivedAt: Date.now() };
+    const email = { id, from, to: toAddr, subject, date, body: parts.text, html: parts.html, expiresAt, receivedAt: Date.now() };
     await getStore(env, toAddr).fetch("https://do/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -457,7 +521,7 @@ export class InboxStore {
       const email = await req.json();
       await st.put("msg:" + email.id, email, { expirationTtl: TTL });
       let idx = (await st.get("idx")) || [];
-      idx.unshift({ id: email.id, from: email.from, subject: email.subject, date: email.date, expiresAt: email.expiresAt });
+      idx.unshift({ id: email.id, from: email.from, subject: email.subject, date: email.date, expiresAt: email.expiresAt, preview: String(email.body || "").replace(/\s+/g, " ").trim().slice(0, 110) });
       idx = idx.slice(0, 50);
       await st.put("idx", idx, { expirationTtl: TTL });
       return new Response("ok");
