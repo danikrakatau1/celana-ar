@@ -4,7 +4,7 @@ compatibility_date = "2026-10-01"
 
 [vars]
 # Daftar domain temp-mail (pisahkan koma). Domain pertama = utama.
-DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id"
+DOMAINS = "celana-ar-store.my.id,dini-faqih.my.id,anif-tools.my.id,4n1f-tutorial.my.id"
 
 [[durable_objects.bindings]]
 name = "INBOX_STORE"
