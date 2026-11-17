@@ -264,7 +264,9 @@ export default {
       return json({ domains });
     }
 
-    return new Response("not found", { status: 404 });
+    // Sisanya = file statis (public/) lewat binding ASSETS. run_worker_first
+    // di wrangler.toml bikin redirect host mail.* jalan juga untuk halaman.
+    return env.ASSETS.fetch(request);
   },
 };
 
