@@ -54,8 +54,8 @@ function renderDomSel(){
       '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
     '</button>' +
     '<div class="dom-list" id="domList" role="listbox">' +
-      DOMAINS.map(function(d){
-        return '<button type="button" class="dom-opt' + (d === domain ? ' sel' : '') + '" role="option" data-dom="' + esc(d) + '"><span>' + esc(d) + '</span>' + (d === domain ? '<span aria-hidden="true">&#10003;</span>' : '') + '</button>';
+      DOMAINS.map(function(d, i){
+        return '<button type="button" class="dom-opt' + (d === domain ? ' sel' : '') + '" role="option" data-dom="' + esc(d) + '" style="animation-delay:' + Math.min(i * 10, 150) + 'ms"><span>' + esc(d) + '</span>' + (d === domain ? '<span aria-hidden="true">&#10003;</span>' : '') + '</button>';
       }).join("") +
     '</div>';
   var btn = document.getElementById("domBtn");
@@ -76,7 +76,7 @@ function toggleDomList(force){
   list.classList.toggle("open", open);
   btn.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", open ? "true" : "false");
-  if(open){ var sel = list.querySelector(".dom-opt.sel"); if(sel) sel.scrollIntoView({ block: "nearest" }); }
+  if(open){ var sel = list.querySelector(".dom-opt.sel"); if(sel) sel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
 }
 function closeDomList(){ toggleDomList(false); }
 document.addEventListener("click", function(e){
