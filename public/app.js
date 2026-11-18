@@ -47,10 +47,43 @@ const _ad = address ? address.split("@")[1] : null;
 if(!domain || DOMAINS.indexOf(domain) === -1) domain = (_ad && DOMAINS.indexOf(_ad) !== -1) ? _ad : DOMAINS[0];
 if(!address || address.split("@")[1] !== domain){ address = rand() + "@" + domain; localStorage.setItem("tm_addr", address); }
 function renderDomSel(){
-  document.getElementById("domsel").innerHTML = '<select id="dompick" onchange="setDomain(this.value)">' + DOMAINS.map(function(d){
-    return '<option value="' + esc(d) + '"' + (d === domain ? " selected" : "") + ">" + esc(d) + "</option>";
-  }).join("") + "</select>";
+  var wrap = document.getElementById("domsel");
+  wrap.innerHTML =
+    '<button type="button" class="dom-btn" id="domBtn" aria-haspopup="listbox" aria-expanded="false">' +
+      '<span>' + esc(domain) + '</span>' +
+      '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
+    '</button>' +
+    '<div class="dom-list" id="domList" role="listbox">' +
+      DOMAINS.map(function(d){
+        return '<button type="button" class="dom-opt' + (d === domain ? ' sel' : '') + '" role="option" data-dom="' + esc(d) + '"><span>' + esc(d) + '</span>' + (d === domain ? '<span aria-hidden="true">&#10003;</span>' : '') + '</button>';
+      }).join("") +
+    '</div>';
+  var btn = document.getElementById("domBtn");
+  var list = document.getElementById("domList");
+  btn.addEventListener("click", function(e){ e.stopPropagation(); toggleDomList(); });
+  list.addEventListener("click", function(e){
+    var t = e.target.closest("[data-dom]");
+    if(!t) return;
+    var d = t.getAttribute("data-dom");
+    closeDomList();
+    if(d !== domain) setDomain(d);
+  });
 }
+function toggleDomList(force){
+  var btn = document.getElementById("domBtn"), list = document.getElementById("domList");
+  if(!btn || !list) return;
+  var open = typeof force === "boolean" ? force : !list.classList.contains("open");
+  list.classList.toggle("open", open);
+  btn.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open){ var sel = list.querySelector(".dom-opt.sel"); if(sel) sel.scrollIntoView({ block: "nearest" }); }
+}
+function closeDomList(){ toggleDomList(false); }
+document.addEventListener("click", function(e){
+  var w = document.getElementById("domsel");
+  if(w && !w.contains(e.target)) closeDomList();
+});
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeDomList(); });
 function setDomain(d){
   const local = address.split("@")[0];
   domain = d; address = local + "@" + d;
