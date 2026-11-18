@@ -330,3 +330,12 @@ body{
 :root[data-theme="light"] .note b{color:#b45309}
 :root[data-theme="light"] .note svg{color:#d97706}
 :root[data-theme="light"] .addrbox{background:rgba(255,255,255,.8)}
+
+/* ---------- rapikan tema terang: panel putih bersih + sisa elemen gelap (18 Nov 2026) ---------- */
+:root[data-theme="light"] .card{background:#ffffff}
+:root[data-theme="light"] .stat{background:#ffffff}
+:root[data-theme="light"] .step{background:#ffffff}
+:root[data-theme="light"] .faq details{background:#ffffff}
+:root[data-theme="light"] .customrow input,:root[data-theme="light"] .searchrow input{background:#ffffff}
+:root[data-theme="light"] .footer{background:#ffffff}
+:root[data-theme="light"] .btn-s:hover{background:rgba(15,23,42,.06)}
