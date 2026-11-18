@@ -282,3 +282,51 @@ body{
 /* ---------- scroll reveal: panel muncul satu-satu smooth (18 Nov 2026) ---------- */
 .rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.21,.8,.35,1),transform .8s cubic-bezier(.21,.8,.35,1)}
 .rv.in{opacity:1;transform:none}
+
+/* ---------- pemilih tema: Gelap / Terang / Sistem (18 Nov 2026) ---------- */
+.theme-wrap{position:relative;display:inline-flex}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:var(--panel2);border:1px solid var(--stroke);color:var(--mut);cursor:pointer;transition:border-color .2s,color .2s}
+.theme-btn:hover{border-color:var(--stroke2);color:var(--txt)}
+.theme-btn span{display:flex}
+.theme-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:172px;background:#0b1120;border:1px solid var(--stroke2);border-radius:var(--r-md);box-shadow:var(--shadow);padding:6px;z-index:70;opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top right;pointer-events:none;transition:opacity .26s cubic-bezier(.21,.8,.35,1),transform .26s cubic-bezier(.21,.8,.35,1)}
+.theme-menu.open{opacity:1;transform:none;pointer-events:auto}
+.theme-opt{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:#e2e8f0;font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s;text-align:left}
+.theme-opt:hover{background:rgba(99,102,241,.14)}
+.theme-opt svg{flex:none;color:var(--mut)}
+.theme-opt .tick{margin-left:auto;opacity:0;color:#a5b4fc;font-size:13px}
+.theme-opt.sel{color:#a5b4fc}
+.theme-opt.sel .tick{opacity:1}
+
+/* ---------- tema terang ---------- */
+:root[data-theme="light"]{
+  --bg:#f3f5fb;
+  --panel:rgba(15,23,42,.045);
+  --panel2:rgba(15,23,42,.07);
+  --stroke:rgba(15,23,42,.12);
+  --stroke2:rgba(15,23,42,.22);
+  --txt:#0d1526;
+  --mut:#5a6a8a;
+  --mut2:#8494b3;
+  --grad-soft:linear-gradient(135deg,rgba(99,102,241,.13),rgba(34,211,238,.09));
+  --shadow:0 18px 50px rgba(30,41,82,.15);
+}
+:root[data-theme="light"] .topbar{background:rgba(255,255,255,.9)}
+:root[data-theme="light"] .bg{background:radial-gradient(900px 500px at 88% -8%,rgba(99,102,241,.13),transparent 62%),radial-gradient(760px 520px at -12% 88%,rgba(13,148,136,.10),transparent 62%),radial-gradient(640px 420px at 55% 112%,rgba(34,211,238,.06),transparent 60%),var(--bg)}
+:root[data-theme="light"] .bg .grid{background-image:linear-gradient(rgba(15,23,42,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,.05) 1px,transparent 1px)}
+:root[data-theme="light"] .dom-list{background:#ffffff}
+:root[data-theme="light"] .dom-opt{color:#1e293b}
+:root[data-theme="light"] .dom-opt.sel{color:#4f46e5}
+:root[data-theme="light"] .theme-menu{background:#ffffff}
+:root[data-theme="light"] .theme-opt{color:#1e293b}
+:root[data-theme="light"] .theme-opt.sel{color:#4f46e5}
+:root[data-theme="light"] .theme-opt .tick{color:#4f46e5}
+:root[data-theme="light"] .mbox{background:#ffffff}
+:root[data-theme="light"] .mail{background:rgba(255,255,255,.7)}
+:root[data-theme="light"] .toast{background:#ffffff}
+:root[data-theme="light"] .chip{color:#4338ca}
+:root[data-theme="light"] .mc-label{color:#4338ca}
+:root[data-theme="light"] .eyebrow{color:#4338ca}
+:root[data-theme="light"] .stat .ic{color:#6366f1}
+:root[data-theme="light"] .note b{color:#b45309}
+:root[data-theme="light"] .note svg{color:#d97706}
+:root[data-theme="light"] .addrbox{background:rgba(255,255,255,.8)}
