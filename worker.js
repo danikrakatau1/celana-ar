@@ -225,7 +225,7 @@ function extractBody(rawStr) {
    walau token Turnstile valid. */
 const TS_SITE_KEY = "0x4AAAAAAGFDhp4eMUo9VAUW";
 const CLEAR_COOKIE = "tm_clear";
-const CLEAR_TTL = 86400;
+const CLEAR_TTL = 3600; // umur cookie izin: 1 jam + terikat IP (keputusan user 18 Nov 2026; sebelumnya 24 jam tanpa ikatan)
 const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
 const RL = new Map();
 
@@ -239,9 +239,16 @@ async function hmacB64(secret, msg) {
   return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function makeClearance(secret) {
+async function ipTag(request) {
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+async function makeClearance(request, secret) {
   const exp = Math.floor(Date.now() / 1000) + CLEAR_TTL;
-  return exp + "." + (await hmacB64(secret, "clear:" + exp));
+  const payload = exp + "." + (await ipTag(request));
+  return payload + "." + (await hmacB64(secret, "clear:" + payload));
 }
 
 async function checkClearance(request, secret) {
@@ -249,10 +256,11 @@ async function checkClearance(request, secret) {
   const m = cookie.match(new RegExp("(?:^|; )" + CLEAR_COOKIE + "=([^;]+)"));
   if (!m) return false;
   const parts = decodeURIComponent(m[1]).split(".");
-  if (parts.length !== 2) return false;
+  if (parts.length !== 3) return false;
   const exp = parseInt(parts[0], 10);
   if (!exp || exp < Math.floor(Date.now() / 1000)) return false;
-  return (await hmacB64(secret, "clear:" + exp)) === parts[1];
+  if (parts[1] !== (await ipTag(request))) return false;
+  return (await hmacB64(secret, "clear:" + parts[0] + "." + parts[1])) === parts[2];
 }
 
 function pageShell(title, inner) {
@@ -345,7 +353,7 @@ async function handleVerify(request, env) {
     ok = !!d.success;
   } catch {}
   if (!ok) return json({ ok: false }, 403);
-  const val = await makeClearance(env.TURNSTILE_SECRET);
+  const val = await makeClearance(request, env.TURNSTILE_SECRET);
   return new Response(JSON.stringify({ ok: true }), {
     headers: {
       "content-type": "application/json",
