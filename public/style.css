@@ -249,3 +249,8 @@ body{
   .mc-copy{margin-left:0}
   .mailframe{height:50vh}
 }
+
+/* ---------- efek scroll: header pintar + hero memudar ---------- */
+.topbar{transition:transform .38s cubic-bezier(.21,.8,.35,1),opacity .38s cubic-bezier(.21,.8,.35,1)}
+.topbar.bar-hide{transform:translateY(-102%);opacity:0;pointer-events:none}
+.hero{will-change:opacity,transform}
