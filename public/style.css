@@ -339,3 +339,10 @@ body{
 :root[data-theme="light"] .customrow input,:root[data-theme="light"] .searchrow input{background:#ffffff}
 :root[data-theme="light"] .footer{background:#ffffff}
 :root[data-theme="light"] .btn-s:hover{background:rgba(15,23,42,.06)}
+
+/* Slot iklan Adsterra */
+.adslot{display:flex;justify-content:center;align-items:flex-start;margin:22px auto;max-width:100%;overflow:hidden}
+.adslot .ad-mob{display:none}
+@media (max-width:760px){.adslot .ad-desk{display:none}.adslot .ad-mob{display:block}}
+.adnative{display:block}
+.adnative #container-ff882573f803eeb134a2a23e7bef6231{max-width:728px;margin:0 auto}
