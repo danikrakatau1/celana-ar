@@ -390,3 +390,31 @@ tickClock(); setInterval(tickClock, 1000);
 load();
 setInterval(load, 8000);
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") load(); });
+
+/* ---------- efek scroll: header pintar + hero memudar ---------- */
+(function(){
+  var bar = document.querySelector(".topbar");
+  var hero = document.querySelector(".hero");
+  var lastY = window.scrollY || 0, ticking = false;
+  function heroFree(){ if(hero && hero.style.animation !== "none") hero.style.animation = "none"; }
+  if(hero){ hero.addEventListener("animationend", heroFree); setTimeout(heroFree, 1200); }
+  function onScroll(){
+    var y = window.scrollY || 0;
+    if(bar){
+      if(y > 90 && y > lastY + 4) bar.classList.add("bar-hide");
+      else if(y < lastY - 4 || y <= 90) bar.classList.remove("bar-hide");
+    }
+    if(hero){
+      if(y > 0) heroFree();
+      var p = Math.min(y / 300, 1);
+      hero.style.opacity = String(1 - p);
+      hero.style.transform = "translateY(" + (-p * 22).toFixed(1) + "px)";
+      hero.style.pointerEvents = p >= 0.98 ? "none" : "";
+    }
+    lastY = y; ticking = false;
+  }
+  window.addEventListener("scroll", function(){
+    if(!ticking){ ticking = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
+})();
