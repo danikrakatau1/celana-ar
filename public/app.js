@@ -66,7 +66,7 @@ function renderDomSel(){
     if(!t) return;
     var d = t.getAttribute("data-dom");
     closeDomList();
-    if(d !== domain) setDomain(d);
+    if(d !== domain) setTimeout(function(){ setDomain(d); }, 280);
   });
 }
 function toggleDomList(force){
