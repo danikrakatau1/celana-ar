@@ -451,3 +451,25 @@ document.addEventListener("visibilitychange", function(){ if(document.visibility
   }, { passive: true });
   onScroll();
 })();
+
+/* ---------- scroll reveal: panel muncul satu-satu, smooth ---------- */
+(function(){
+  if(!("IntersectionObserver" in window)) return;
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.1, rootMargin: "0px 0px -6% 0px" });
+  var vh = window.innerHeight || 800;
+  document.querySelectorAll(".wrap > section:not(.hero):not(.stats), .stats > .stat, .footer").forEach(function(el){
+    var r = el.getBoundingClientRect();
+    if(r.top < vh * 0.94) return; /* sudah kelihatan pas halaman dimuat: biarkan animasi bawaan */
+    el.style.animation = "none";
+    el.classList.add("rv");
+    if(el.classList.contains("stat")){
+      var idx = Array.prototype.indexOf.call(el.parentNode.children, el);
+      el.style.transitionDelay = (idx * 0.09) + "s";
+    }
+    io.observe(el);
+  });
+})();
