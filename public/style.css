@@ -278,3 +278,7 @@ body{
 /* Dropdown domain: tiap opsi masuk berurutan, bukan sekaligus */
 .dom-list.open .dom-opt{animation:optin .3s cubic-bezier(.21,.8,.35,1) both}
 @keyframes optin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ---------- scroll reveal: panel muncul satu-satu smooth (18 Nov 2026) ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.21,.8,.35,1),transform .8s cubic-bezier(.21,.8,.35,1)}
+.rv.in{opacity:1;transform:none}
