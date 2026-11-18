@@ -257,3 +257,24 @@ body{
 .topbar{transition:transform .38s cubic-bezier(.21,.8,.35,1),opacity .38s cubic-bezier(.21,.8,.35,1)}
 .topbar.bar-hide{transform:translateY(-102%);opacity:0;pointer-events:none}
 .hero{will-change:opacity,transform}
+
+/* ---------- ikon bergerak + dropdown domain halus (18 Nov 2026) ---------- */
+/* Ikon stat: melayang lembut, delay beda-beda biar tidak serentak */
+.stat .ic svg{animation:icfloat 4.5s ease-in-out infinite}
+.stat:nth-child(2) .ic svg{animation-delay:.7s}
+.stat:nth-child(3) .ic svg{animation-delay:1.4s}
+@keyframes icfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+/* Ikon petir stat pertama: denyut halus */
+.stat:nth-child(1) .ic svg{animation:icfloat 4.5s ease-in-out infinite,iczap 2.2s ease-in-out infinite}
+@keyframes iczap{0%,100%{opacity:1}50%{opacity:.65}}
+/* Ikon tombol: bergerak pas hover */
+.btn-p svg,.btn-s svg{transition:transform .3s cubic-bezier(.21,.8,.35,1)}
+.btn-p:hover svg{transform:translateX(2px) rotate(-6deg)}
+.btn-s:hover svg{transform:rotate(20deg)}
+/* Ikon lonceng: goyang pelan pas hover (pakai keyframe shk yang sudah ada) */
+#muteBtn:hover svg{animation:shk .6s ease}
+/* Ikon inbox kosong: melayang pelan */
+.empty .big svg{animation:icfloat 4s ease-in-out infinite}
+/* Dropdown domain: tiap opsi masuk berurutan, bukan sekaligus */
+.dom-list.open .dom-opt{animation:optin .3s cubic-bezier(.21,.8,.35,1) both}
+@keyframes optin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
