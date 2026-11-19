@@ -568,6 +568,11 @@ export default {
         const r = await gaStore(env).fetch("https://do/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope: b.scope === "all" ? "all" : "winners" }) });
         return json(await r.json(), r.status);
       }
+      if (sub === "seed" && request.method === "POST") {
+        const b = await request.json().catch(() => ({}));
+        const r = await gaStore(env).fetch("https://do/seed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ count: b.count }) });
+        return json(await r.json(), r.status);
+      }
       return json({ error: "unknown" }, 404);
     }
 
@@ -732,6 +737,21 @@ async function handleGaEnter(request, env) {
   try { b = await request.json(); } catch {}
   const name = String(b.name || "").replace(/\s+/g, " ").trim();
   const wa = normWa(b.wa);
+  // Combo keamanan: token Turnstile dari form wajib sah (diverifikasi server).
+  const token = String(b.token || "");
+  let tsOk = false;
+  if (token) {
+    try {
+      const form = new URLSearchParams();
+      form.set("secret", env.TURNSTILE_SECRET);
+      form.set("response", token);
+      form.set("remoteip", ip);
+      const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+      const vd = await vr.json();
+      tsOk = !!(vd && vd.success);
+    } catch {}
+  }
+  if (!tsOk) return json({ error: "turnstile", msg: "Verifikasi keamanan (Turnstile) gagal. Selesaikan verifikasinya lalu coba kirim lagi." }, 403);
   if (name.length < 3 || name.length > 60 || /[<>]/.test(name)) return json({ error: "nama tidak valid (3-60 karakter)" }, 400);
   if (!/^62\d{8,13}$/.test(wa)) return json({ error: "nomor WhatsApp tidak valid" }, 400);
   const r = await gaStore(env).fetch("https://do/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, wa }) });
@@ -884,6 +904,34 @@ export class GiveawayStore {
       }
       await st.put("winners", []);
       return Response.json({ ok: true });
+    }
+
+    if (path === "/seed" && req.method === "POST") {
+      const { count } = await req.json();
+      let n = parseInt(count, 10) || 0;
+      if (n < 1) n = 1;
+      if (n > 500) n = 500;
+      const FIRST = ["Budi", "Sari", "Agus", "Dewi", "Rina", "Joko", "Fitri", "Andi", "Maya", "Rudi", "Sinta", "Bambang", "Ratna", "Dedi", "Lestari", "Eko", "Nur", "Hadi", "Wati", "Rizki", "Putri", "Fajar", "Intan", "Bayu", "Tari", "Dian", "Galih", "Rahma", "Ilham", "Siska"];
+      const LAST = ["Santoso", "Wijaya", "Pratama", "Saputra", "Nugroho", "Hidayat", "Nugraha", "Puspita", "Anggraini", "Firmansyah", "Handoko", "Salim", "Halim", "Mahesa", "Kirana", "Permata", "Utama", "Nugraheni", "Saputri", "Ramadhan", "Fauzi", "Akbar", "Laksmana", "Pramudya", "Setiawan", "Gunawan", "Hartono", "Susanto", "Pangestu", "Ramadhani"];
+      const entries = (await st.get("entries")) || [];
+      let counter = (await st.get("counter")) || 0;
+      const used = new Set(entries.map((e) => e.wa));
+      let made = 0;
+      let guard = 0;
+      while (made < n && guard < n * 30) {
+        guard++;
+        const name = FIRST[Math.floor(Math.random() * FIRST.length)] + " " + LAST[Math.floor(Math.random() * LAST.length)];
+        let wa = "628";
+        for (let i = 0; i < 10; i++) wa += Math.floor(Math.random() * 10);
+        if (used.has(wa)) continue;
+        used.add(wa);
+        counter += 1;
+        entries.push({ no: "GA-" + String(counter).padStart(3, "0"), name: name, wa: wa, ts: Date.now(), test: true });
+        made++;
+      }
+      await st.put("entries", entries);
+      await st.put("counter", counter);
+      return Response.json({ ok: true, added: made, total: entries.length });
     }
 
     return new Response("not found", { status: 404 });
