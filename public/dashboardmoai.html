@@ -64,6 +64,7 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
 <main class="wrap">
   <h1>Dashboard Giveaway</h1>
   <div class="sub">moai.my.id/giveaway &middot; Undi: Sabtu, 21 November 2026 pukul 20.00 WIB &middot; Halaman ini khusus admin.</div>
+  <div style="margin-top:12px"><button class="btn btn-ghost" id="btnLogout" style="padding:8px 16px;font-size:13px">Keluar</button></div>
 
   <div class="msg" id="msg"></div>
 
@@ -244,6 +245,12 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
         else showMsg("Gagal reset.", false);
       })
       .catch(function(){ showMsg("Koneksi bermasalah.", false); });
+  });
+
+  document.getElementById("btnLogout").addEventListener("click", function(){
+    fetch("/api/giveaway/admin/logout", { method: "POST" })
+      .then(function(){ location.replace("/dashboardmoai"); })
+      .catch(function(){ location.replace("/dashboardmoai"); });
   });
 
   load();
