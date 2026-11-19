@@ -240,6 +240,7 @@ const GA_TICKET_TTL = 600;
 const GA_SESS_TTL = 7200;
 const GA_MAX_WINNERS = 2;
 const GA_ADMIN_USER = "faqihanif12282000@gmail.com"; // username login dashboard = email (pilihan user 19 Nov 2026)
+const GA_DRAW_MS = 60000; // seremoni undi 60 detik: pemenang terkunci di server, terbit setelah 1 menit
 const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
 const RL = new Map();
 
@@ -529,7 +530,7 @@ export default {
     if (url.pathname === "/api/giveaway/status" && request.method === "GET") {
       const r = await gaStore(env).fetch("https://do/status");
       const d = await r.json();
-      return json({ open: Date.now() < GA_CLOSE_MS, closeMs: GA_CLOSE_MS, drawLabel: GA_DRAW_LABEL, count: d.count || 0, winners: d.winners || [] });
+      return json({ open: Date.now() < GA_CLOSE_MS, closeMs: GA_CLOSE_MS, drawLabel: GA_DRAW_LABEL, count: d.count || 0, winners: d.winners || [], drawing: d.drawing || null });
     }
     if (url.pathname === "/api/giveaway/enter" && request.method === "POST") {
       return handleGaEnter(request, env);
@@ -825,6 +826,20 @@ export class GiveawayStore {
     const path = url.pathname;
     const st = this.state.storage;
 
+    // Pengundian 60 detik: pemenang tersimpan di "drawing" dan baru pindah
+    // ke "winners" (terbit) setelah revealAt lewat. Dipanggil di tiap endpoint.
+    const finalizeDrawing = async () => {
+      const d = await st.get("drawing");
+      if (d && Date.now() >= d.revealAt) {
+        const winners = (await st.get("winners")) || [];
+        winners.push(d.winner);
+        await st.put("winners", winners);
+        await st.delete("drawing");
+        return null;
+      }
+      return d || null;
+    };
+
     if (path === "/use-ticket" && req.method === "POST") {
       const { h } = await req.json();
       const used = (await st.get("usedTickets")) || {};
@@ -855,18 +870,27 @@ export class GiveawayStore {
     }
 
     if (path === "/status") {
+      const drawing = await finalizeDrawing();
       const entries = (await st.get("entries")) || [];
       const winners = (await st.get("winners")) || [];
-      return Response.json({ count: entries.length, winners: winners.map((w) => ({ slot: w.slot, name: w.name, no: w.no })) });
+      const out = { count: entries.length, winners: winners.map((w) => ({ slot: w.slot, name: w.name, no: w.no })) };
+      if (drawing) out.drawing = { endsInMs: Math.max(0, drawing.revealAt - Date.now()), pool: drawing.pool };
+      return Response.json(out);
     }
 
     if (path === "/list") {
+      await finalizeDrawing();
       const entries = (await st.get("entries")) || [];
       const winners = (await st.get("winners")) || [];
       return Response.json({ entries, winners });
     }
 
     if (path === "/draw" && req.method === "POST") {
+      await finalizeDrawing();
+      const active = await st.get("drawing");
+      if (active) {
+        return Response.json({ error: "drawing", msg: "Pengundian sedang berlangsung. Tunggu sampai selesai (maks 1 menit)." }, { status: 409 });
+      }
       const entries = (await st.get("entries")) || [];
       const winners = (await st.get("winners")) || [];
       if (winners.length >= GA_MAX_WINNERS) {
@@ -880,9 +904,10 @@ export class GiveawayStore {
       const rnd = crypto.getRandomValues(new Uint32Array(1))[0];
       const pick = pool[rnd % pool.length];
       const winner = { slot: winners.length + 1, no: pick.no, name: pick.name, wa: pick.wa, ts: Date.now() };
-      winners.push(winner);
-      await st.put("winners", winners);
-      return Response.json({ ok: true, winner: { slot: winner.slot, name: winner.name, no: winner.no } });
+      const now = Date.now();
+      const drawing = { winner: winner, pool: pool.map((e) => e.name), startedAt: now, revealAt: now + GA_DRAW_MS };
+      await st.put("drawing", drawing);
+      return Response.json({ ok: true, drawing: true, revealAt: drawing.revealAt, winner: { slot: winner.slot, name: winner.name, no: winner.no } });
     }
 
     if (path === "/remove" && req.method === "POST") {
@@ -898,6 +923,7 @@ export class GiveawayStore {
 
     if (path === "/reset" && req.method === "POST") {
       const { scope } = await req.json();
+      await st.delete("drawing");
       if (scope === "all") {
         await st.put("entries", []);
         await st.put("counter", 0);
