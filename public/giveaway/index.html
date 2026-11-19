@@ -129,15 +129,14 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 .wcard.pop{animation:winnerPop .8s cubic-bezier(.22,1,.36,1) both,winnerGlow 1.5s ease .25s 2}
 @keyframes winnerPop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.045);opacity:1}100%{transform:scale(1)}}
 @keyframes winnerGlow{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 46px rgba(245,158,11,.5)}}
-.wait-panel{text-align:center;padding:26px 10px 10px;transition:opacity .45s ease,transform .45s ease}
-.wait-panel.hide{opacity:0;transform:translateY(-8px)}
 .spin-ring{width:58px;height:58px;margin:0 auto 16px;border-radius:50%;border:4px solid rgba(99,102,241,.18);border-top-color:#6366f1;border-right-color:#22d3ee;animation:spinRing .9s linear infinite}
 @keyframes spinRing{to{transform:rotate(360deg)}}
-.wait-title{font-size:19px;font-weight:800;margin-bottom:6px}
-.wait-sub{color:var(--mut);font-size:14px;line-height:1.65;max-width:430px;margin:0 auto}
-.wait-sub b{color:var(--txt);font-family:"JetBrains Mono",monospace}
-.wait-bar{height:6px;border-radius:99px;background:rgba(148,163,184,.15);max-width:430px;margin:16px auto 4px;overflow:hidden}
-.wait-bar span{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(135deg,#6366f1,#22d3ee);transition:width .3s linear}
+.drawing{display:none;text-align:center;margin:30px auto 4px;max-width:820px;background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r-lg);padding:30px 22px;box-shadow:var(--shadow)}
+.drawing.show{display:block;animation:winIn .6s cubic-bezier(.22,1,.36,1) both}
+.drawing h2{font-size:22px;font-weight:800;margin:4px 0 4px}
+.draw-name{font-size:clamp(30px,7vw,46px);font-weight:800;line-height:1.2;min-height:1.25em;margin:12px 0 4px;word-break:break-word}
+.draw-phase{color:var(--mut);font-size:14.5px}
+.draw-count{font-family:"JetBrains Mono",monospace;color:var(--mut);font-size:14px;margin-top:9px}
 .ts-box{display:none;justify-content:center;margin:14px 0 2px}
 .ts-box.show{display:flex;animation:winIn .5s cubic-bezier(.22,1,.36,1) both}
 </style>
@@ -204,6 +203,14 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     <div class="count-line" id="countLine">Memuat jumlah peserta&hellip;</div>
   </div>
 
+  <section class="drawing" id="drawingSec">
+    <div class="spin-ring" aria-hidden="true"></div>
+    <h2>Pengundian Sedang Berlangsung</h2>
+    <div class="draw-name" id="drawName">...</div>
+    <div class="draw-phase" id="drawPhase">Mengacak nama peserta...</div>
+    <div class="draw-count" id="drawCount"></div>
+  </section>
+
   <section class="winners" id="winners">
     <h2>&#127942; Pemenang Giveaway</h2>
     <div class="wsub">Diundi langsung pada Sabtu, 21 November 2026 pukul 20.00 WIB. Nama pemenang tampil di sini dan tidak berubah.</div>
@@ -214,13 +221,6 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     <div class="card-head">
       <h2>Form Pendaftaran</h2>
       <span class="sess-pill">&#10003; Tiket resmi terdeteksi</span>
-    </div>
-
-    <div class="wait-panel" id="waitPanel">
-      <div class="spin-ring" aria-hidden="true"></div>
-      <div class="wait-title">Menyiapkan Pendaftaran</div>
-      <p class="wait-sub">Formulir dibuka dalam <b id="waitCount">01:00</b>. Sambil menunggu, lihat-lihat dulu ya &mdash; iklan yang tampil membantu giveaway ini tetap gratis.</p>
-      <div class="wait-bar"><span id="waitBarFill"></span></div>
     </div>
 
     <form id="gaForm" novalidate>
@@ -308,8 +308,6 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   function showClosed(){
     if (registeredNo) return;
     form.style.display = "none";
-    var wp = document.getElementById("waitPanel");
-    if (wp) wp.style.display = "none";
     closedBox.classList.add("show");
   }
   if (registeredNo) showSuccess(registeredNo);
@@ -382,6 +380,40 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     })(t0);
   }
 
+  // ---- pengundian live di halaman publik (seremoni 60 detik) ----
+  var pubDraw = { active: false, pool: [], revealAt: 0, timer: null };
+  function startPublicDraw(d){
+    pubDraw.pool = d.pool || [];
+    pubDraw.revealAt = Date.now() + (d.endsInMs || 60000);
+    if (pubDraw.active) return;
+    pubDraw.active = true;
+    document.getElementById("drawingSec").classList.add("show");
+    (function step(){
+      if (!pubDraw.active) return;
+      var rem = pubDraw.revealAt - Date.now();
+      var nmEl = document.getElementById("drawName");
+      var phEl = document.getElementById("drawPhase");
+      var ctEl = document.getElementById("drawCount");
+      if (rem <= 0) {
+        nmEl.textContent = "...";
+        phEl.textContent = "Mengumumkan pemenang...";
+        ctEl.textContent = "";
+        pubDraw.timer = setTimeout(step, 800);
+        return;
+      }
+      nmEl.textContent = pubDraw.pool.length ? pubDraw.pool[Math.floor(Math.random() * pubDraw.pool.length)] : "...";
+      phEl.textContent = rem > 40000 ? "Mengacak nama peserta..." : (rem > 15000 ? "Menyaring kandidat..." : "Satu nama akan terpilih...");
+      var s = Math.ceil(rem / 1000);
+      ctEl.textContent = "Pemenang diumumkan dalam " + Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
+      pubDraw.timer = setTimeout(step, rem > 12000 ? 90 : 500);
+    })();
+  }
+  function stopPublicDraw(){
+    pubDraw.active = false;
+    if (pubDraw.timer) clearTimeout(pubDraw.timer);
+    document.getElementById("drawingSec").classList.remove("show");
+  }
+
   function loadStatus(){
     fetch("/api/giveaway/status", { headers: { "accept": "application/json" } })
       .then(function(r){ return r.json(); })
@@ -396,6 +428,8 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
           fireConfetti();
         }
         prevWinCount = wc;
+        if (d.drawing && d.drawing.pool && d.drawing.pool.length) startPublicDraw(d.drawing);
+        else if (pubDraw.active) stopPublicDraw();
         if (d.open === false) showClosed();
       })
       .catch(function(){});
@@ -407,43 +441,6 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   var errBox = document.getElementById("fError");
   var traps = 0;
   try { traps = parseInt(sessionStorage.getItem("ga_trap") || "0", 10) || 0; } catch(e){}
-
-  // ---- delay 1 menit + spinner sebelum form kebuka ----
-  var waitPanel = document.getElementById("waitPanel");
-  var waitDone = false;
-  var waitUntil = 0;
-  try { waitUntil = parseInt(sessionStorage.getItem("ga_wait_until") || "0", 10) || 0; } catch(e){}
-  if (!waitUntil) {
-    waitUntil = Date.now() + 60000;
-    try { sessionStorage.setItem("ga_wait_until", String(waitUntil)); } catch(e){}
-  }
-  function fmtWait(ms){
-    var s = Math.max(0, Math.ceil(ms / 1000));
-    var m = Math.floor(s / 60), d = s % 60;
-    return (m < 10 ? "0" : "") + m + ":" + (d < 10 ? "0" : "") + d;
-  }
-  function finishWait(){
-    if (waitDone) return;
-    waitDone = true;
-    waitPanel.classList.add("hide");
-    setTimeout(function(){ waitPanel.style.display = "none"; }, 460);
-    if (!registeredNo) form.style.display = "";
-  }
-  if (registeredNo || waitUntil <= Date.now()) {
-    waitPanel.style.display = "none";
-    waitDone = true;
-  } else {
-    form.style.display = "none";
-    var wCount = document.getElementById("waitCount");
-    var wFill = document.getElementById("waitBarFill");
-    wCount.textContent = fmtWait(waitUntil - Date.now());
-    var wIv = setInterval(function(){
-      var rem = waitUntil - Date.now();
-      if (rem <= 0) { clearInterval(wIv); finishWait(); return; }
-      wCount.textContent = fmtWait(rem);
-      wFill.style.width = Math.min(100, (1 - rem / 60000) * 100) + "%";
-    }, 250);
-  }
 
   // ---- Turnstile di form (muncul setelah jebakan iklan 2x) ----
   var gaTsToken = "";
