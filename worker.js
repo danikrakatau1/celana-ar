@@ -536,10 +536,19 @@ export default {
     if (url.pathname === "/dashboardmoai" || url.pathname === "/dashboardmoai.html") {
       return handleGaDashboard(request, env);
     }
+    if (url.pathname === "/dashboard-login.html") {
+      return Response.redirect(new URL("/dashboardmoai", request.url).toString(), 302);
+    }
     if (url.pathname.startsWith("/api/giveaway/admin/")) {
       if (!env.GIVEAWAY_ADMIN_KEY) return json({ error: "dashboard belum dikonfigurasi" }, 503);
-      if (!(await checkGaAdmin(request, env))) return json({ error: "unauthorized" }, 401);
       const sub = url.pathname.slice("/api/giveaway/admin/".length);
+      if (sub === "login" && request.method === "POST") {
+        return handleGaLogin(request, env);
+      }
+      if (sub === "logout" && request.method === "POST") {
+        return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json; charset=utf-8", "set-cookie": "ga_admin=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax" } });
+      }
+      if (!(await checkGaAdmin(request, env))) return json({ error: "unauthorized" }, 401);
       if (sub === "list" && request.method === "GET") {
         const r = await gaStore(env).fetch("https://do/list");
         return json(await r.json());
@@ -733,20 +742,35 @@ async function handleGaDashboard(request, env) {
   if (!env.GIVEAWAY_ADMIN_KEY) {
     return new Response("Dashboard belum aktif: secret GIVEAWAY_ADMIN_KEY belum dipasang di Worker.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
   }
-  const url = new URL(request.url);
-  const keyParam = url.searchParams.get("key") || "";
-  let adminCookie = null;
-  if (keyParam && keyParam === env.GIVEAWAY_ADMIN_KEY) {
-    adminCookie = "ga_admin=" + encodeURIComponent(await hmacB64(env.TURNSTILE_SECRET, "ga-admin:" + env.GIVEAWAY_ADMIN_KEY)) + "; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax";
-  } else if (!(await checkGaAdmin(request, env))) {
-    return new Response("not found", { status: 404 });
-  }
-  const assetReq = new Request(new URL("/dashboardmoai.html", request.url), { method: "GET" });
+  // Sudah login (cookie admin sah) -> dashboard. Belum -> halaman login.
+  const authed = await checkGaAdmin(request, env);
+  const assetPath = authed ? "/dashboardmoai.html" : "/dashboard-login.html";
+  const assetReq = new Request(new URL(assetPath, request.url), { method: "GET" });
   const resp = await env.ASSETS.fetch(assetReq);
   const headers = new Headers(resp.headers);
   headers.set("cache-control", "no-store");
-  if (adminCookie) headers.append("set-cookie", adminCookie);
   return new Response(resp.body, { status: resp.status, headers });
+}
+
+async function handleGaLogin(request, env) {
+  const ip = request.headers.get("cf-connecting-ip") || "x";
+  const now = Date.now();
+  const rec = RL.get("galogin:" + ip);
+  if (rec && now < rec.reset && rec.n >= 5) {
+    return json({ error: "Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit." }, 429);
+  }
+  let b = {};
+  try { b = await request.json(); } catch {}
+  const user = String(b.username || "").trim();
+  const pass = String(b.password || "");
+  const ok = user === "admin" && pass.length > 0 && pass === env.GIVEAWAY_ADMIN_KEY;
+  if (!ok) {
+    if (!rec || now >= rec.reset) RL.set("galogin:" + ip, { n: 1, reset: now + 600000 });
+    else rec.n++;
+    return json({ error: "Username atau kata sandi salah." }, 401);
+  }
+  const cookie = "ga_admin=" + encodeURIComponent(await hmacB64(env.TURNSTILE_SECRET, "ga-admin:" + env.GIVEAWAY_ADMIN_KEY)) + "; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax";
+  return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json; charset=utf-8", "set-cookie": cookie } });
 }
 
 /* ---------------- Durable Object: data giveaway ----------------
