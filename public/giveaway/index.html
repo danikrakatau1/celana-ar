@@ -193,7 +193,8 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 .step .num{width:38px;height:38px;border-radius:50%;background:var(--grad);color:#fff;font-weight:800;font-size:17px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:9px;box-shadow:0 8px 20px rgba(79,70,229,.35)}
 .step .st{font-weight:800;font-size:15.5px}
 .step .sd{color:var(--mut);font-size:13px;margin-top:3px;line-height:1.55}
-.card{--cardbg:#0c1122;background:linear-gradient(var(--cardbg),var(--cardbg)) padding-box,linear-gradient(135deg,rgba(99,102,241,.55),rgba(34,211,238,.28),rgba(99,102,241,.14)) border-box;border:1px solid transparent}
+:root{--cardbg:#0c1122}
+.card{background:linear-gradient(var(--cardbg),var(--cardbg)) padding-box,linear-gradient(135deg,rgba(99,102,241,.55),rgba(34,211,238,.28),rgba(99,102,241,.14)) border-box;border:1px solid transparent}
 .btn-submit{position:relative;overflow:hidden}
 .btn-submit::after{content:"";position:absolute;top:0;left:-90%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);transition:left .65s ease}
 .btn-submit:hover::after{left:135%}
