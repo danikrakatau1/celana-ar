@@ -137,6 +137,26 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 .draw-name{font-size:clamp(30px,7vw,46px);font-weight:800;line-height:1.2;min-height:1.25em;margin:12px 0 4px;word-break:break-word}
 .draw-phase{color:var(--mut);font-size:14.5px}
 .draw-count{font-family:"JetBrains Mono",monospace;color:var(--mut);font-size:14px;margin-top:9px}
+.br-grid{display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-height:32vh;overflow:auto;margin-top:16px;padding:4px}
+.br-grid.show{display:flex}
+.br-grid .chip{font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--stroke2);color:var(--txt);transition:all .35s}
+.br-grid .chip.out{opacity:.3;text-decoration:line-through;transform:scale(.92)}
+.br-grid .chip.fin{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.55)}
+.giftwrap{display:none;text-align:center}
+.giftwrap.show{display:block}
+.gift{position:relative;width:130px;height:118px;margin:8px auto 0}
+.gift-body{position:absolute;bottom:0;left:5px;width:120px;height:88px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#22d3ee)}
+.gift-body::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:20px;transform:translateX(-50%);background:#f59e0b}
+.gift-lid{position:absolute;top:0;left:0;width:130px;height:30px;border-radius:8px;background:linear-gradient(135deg,#818cf8,#67e8f9);z-index:2;transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .45s}
+.gift-lid::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:20px;transform:translateX(-50%);background:#f59e0b}
+.giftwrap.shake .gift{animation:giftShake .38s linear infinite}
+@keyframes giftShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.6deg)}75%{transform:rotate(2.6deg)}}
+.giftwrap.open .gift-lid{transform:translate(52px,-70px) rotate(26deg);opacity:0}
+.giftwrap.open .gift-body{box-shadow:0 0 70px rgba(245,158,11,.55)}
+.bigcount{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-size:clamp(90px,22vw,170px);font-weight:800;color:#fff;text-shadow:0 10px 50px rgba(0,0,0,.55);z-index:300;pointer-events:none}
+.bigcount.show{display:flex}
+.bigcount span{animation:countPop .92s cubic-bezier(.22,1,.36,1) both}
+@keyframes countPop{0%{transform:scale(1.7);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.92);opacity:0}}
 .ts-box{display:none;justify-content:center;margin:14px 0 2px}
 .ts-box.show{display:flex;animation:winIn .5s cubic-bezier(.22,1,.36,1) both}
 </style>
@@ -209,7 +229,10 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     <div class="draw-name" id="drawName">...</div>
     <div class="draw-phase" id="drawPhase">Mengacak nama peserta...</div>
     <div class="draw-count" id="drawCount"></div>
+    <div class="br-grid" id="brGridPub"></div>
+    <div class="giftwrap" id="giftPub"><div class="gift"><div class="gift-lid"></div><div class="gift-body"></div></div></div>
   </section>
+  <div class="bigcount" id="bigCountPub"></div>
 
   <section class="winners" id="winners">
     <h2>&#127942; Pemenang Giveaway</h2>
@@ -380,13 +403,74 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     })(t0);
   }
 
+  function fireFireworks(){
+    var cvs = document.createElement("canvas");
+    cvs.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9998";
+    document.body.appendChild(cvs);
+    var ctx = cvs.getContext("2d");
+    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+    var cols = ["#f59e0b","#fbbf24","#6366f1","#22d3ee","#f472b6","#ffffff"];
+    var sparks = [];
+    var bursts = 0;
+    var start = performance.now();
+    function burst(){
+      var x = window.innerWidth * (0.15 + Math.random() * 0.7), y = window.innerHeight * (0.12 + Math.random() * 0.35);
+      var col = cols[Math.floor(Math.random() * cols.length)];
+      for (var i = 0; i < 42; i++) {
+        var a = (i / 42) * Math.PI * 2, sp = 2 + Math.random() * 3.4;
+        sparks.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, col: col });
+      }
+    }
+    (function frame(now){
+      var el = now - start;
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (el < 1800 && bursts < 7 && el > bursts * 260) { burst(); bursts++; }
+      sparks = sparks.filter(function(s){ return s.life > 0; });
+      sparks.forEach(function(s){
+        s.x += s.vx; s.y += s.vy; s.vy += 0.03; s.vx *= 0.985; s.vy *= 0.985; s.life -= 0.011;
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.fillStyle = s.col;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.4, 0, 7); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      if (el < 3400) requestAnimationFrame(frame);
+      else cvs.remove();
+    })(start);
+  }
+
   // ---- pengundian live di halaman publik (seremoni 60 detik) ----
-  var pubDraw = { active: false, pool: [], revealAt: 0, timer: null };
+  var pubDraw = { active: false, pool: [], finalists: [], revealAt: 0, timer: null, elimQueue: [], elimTotal: 0, elimDone: 0, aliveNames: [], lastCount: -1, giftShown: false };
+  function pickName(arr){ return arr.length ? arr[Math.floor(Math.random() * arr.length)] : "..."; }
+  function buildPublicGrid(){
+    var grid = document.getElementById("brGridPub");
+    var finSet = {};
+    pubDraw.finalists.forEach(function(n){ finSet[n] = true; });
+    grid.innerHTML = "";
+    pubDraw.aliveNames = pubDraw.pool.slice();
+    pubDraw.elimQueue = [];
+    pubDraw.pool.forEach(function(n){
+      var s = document.createElement("span");
+      s.className = "chip" + (finSet[n] ? " fin" : "");
+      s.textContent = n;
+      s.dataset.name = n;
+      grid.appendChild(s);
+      if (!finSet[n]) pubDraw.elimQueue.push(s);
+    });
+    for (var i = pubDraw.elimQueue.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = pubDraw.elimQueue[i]; pubDraw.elimQueue[i] = pubDraw.elimQueue[j]; pubDraw.elimQueue[j] = t; }
+    pubDraw.elimTotal = pubDraw.elimQueue.length;
+    pubDraw.elimDone = 0;
+    grid.classList.remove("show");
+  }
   function startPublicDraw(d){
     pubDraw.pool = d.pool || [];
+    if (d.finalists && d.finalists.length) pubDraw.finalists = d.finalists;
+    if (!pubDraw.finalists.length) pubDraw.finalists = pubDraw.pool.slice(0, 5);
     pubDraw.revealAt = Date.now() + (d.endsInMs || 60000);
     if (pubDraw.active) return;
     pubDraw.active = true;
+    pubDraw.lastCount = -1;
+    pubDraw.giftShown = false;
+    buildPublicGrid();
     document.getElementById("drawingSec").classList.add("show");
     (function step(){
       if (!pubDraw.active) return;
@@ -394,24 +478,72 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
       var nmEl = document.getElementById("drawName");
       var phEl = document.getElementById("drawPhase");
       var ctEl = document.getElementById("drawCount");
+      var grid = document.getElementById("brGridPub");
+      var gift = document.getElementById("giftPub");
+      var bc = document.getElementById("bigCountPub");
       if (rem <= 0) {
         nmEl.textContent = "...";
         phEl.textContent = "Mengumumkan pemenang...";
         ctEl.textContent = "";
+        grid.classList.remove("show");
+        gift.className = "giftwrap";
+        bc.classList.remove("show");
         pubDraw.timer = setTimeout(step, 800);
         return;
       }
-      nmEl.textContent = pubDraw.pool.length ? pubDraw.pool[Math.floor(Math.random() * pubDraw.pool.length)] : "...";
-      phEl.textContent = rem > 40000 ? "Mengacak nama peserta..." : (rem > 15000 ? "Menyaring kandidat..." : "Satu nama akan terpilih...");
       var s = Math.ceil(rem / 1000);
-      ctEl.textContent = "Pemenang diumumkan dalam " + Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
-      pubDraw.timer = setTimeout(step, rem > 12000 ? 90 : 500);
+      var delay = 120;
+      if (rem > 45000) {
+        ctEl.textContent = "Pemenang diumumkan dalam " + Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
+        phEl.textContent = "Mengacak nama peserta...";
+        nmEl.textContent = pickName(pubDraw.pool);
+        delay = 90;
+      } else if (rem > 15000) {
+        ctEl.textContent = "Pemenang diumumkan dalam " + Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
+        grid.classList.add("show");
+        phEl.textContent = "Battle royale — tersisa " + pubDraw.aliveNames.length + " peserta...";
+        var should = Math.floor(((45000 - rem) / 30000) * pubDraw.elimTotal);
+        while (pubDraw.elimDone < should && pubDraw.elimDone < pubDraw.elimQueue.length) {
+          var chip = pubDraw.elimQueue[pubDraw.elimDone];
+          chip.classList.add("out");
+          var idx = pubDraw.aliveNames.indexOf(chip.dataset.name);
+          if (idx >= 0) pubDraw.aliveNames.splice(idx, 1);
+          pubDraw.elimDone++;
+        }
+        nmEl.textContent = pickName(pubDraw.aliveNames);
+        delay = 140;
+      } else if (rem > 5000) {
+        ctEl.textContent = "Pemenang diumumkan dalam " + Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
+        phEl.textContent = pubDraw.finalists.length + " finalis tersisa — siapa yang bertahan?";
+        nmEl.textContent = pickName(pubDraw.finalists);
+        delay = rem > 10000 ? 300 : 600;
+      } else if (rem > 3000) {
+        if (!pubDraw.giftShown) {
+          pubDraw.giftShown = true;
+          nmEl.textContent = "";
+          phEl.textContent = "Pemenangnya ada di dalam kotak...";
+          ctEl.textContent = "";
+          grid.classList.remove("show");
+          gift.classList.add("show", "shake");
+        }
+      } else {
+        var c = Math.ceil(rem / 1000);
+        if (c !== pubDraw.lastCount && c >= 1) {
+          pubDraw.lastCount = c;
+          bc.innerHTML = "<span>" + c + "</span>";
+          bc.classList.add("show");
+        }
+      }
+      pubDraw.timer = setTimeout(step, delay);
     })();
   }
   function stopPublicDraw(){
     pubDraw.active = false;
     if (pubDraw.timer) clearTimeout(pubDraw.timer);
     document.getElementById("drawingSec").classList.remove("show");
+    document.getElementById("bigCountPub").classList.remove("show");
+    var g = document.getElementById("giftPub");
+    if (g) g.className = "giftwrap";
   }
 
   function loadStatus(){
@@ -426,6 +558,7 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
           var lastCard = wgrid.lastElementChild;
           if (lastCard) lastCard.classList.add("pop");
           fireConfetti();
+          fireFireworks();
         }
         prevWinCount = wc;
         if (d.drawing && d.drawing.pool && d.drawing.pool.length) startPublicDraw(d.drawing);
