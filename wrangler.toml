@@ -10,9 +10,17 @@ DOMAINS = "moai.my.id,celana-ar-store.my.id,dini-faqih.my.id,anif-tools.my.id,4n
 name = "INBOX_STORE"
 class_name = "InboxStore"
 
+[[durable_objects.bindings]]
+name = "GIVEAWAY_STORE"
+class_name = "GiveawayStore"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["InboxStore"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["GiveawayStore"]
 
 # KV lama (tidak dipakai lagi sejak migrasi Durable Objects 2026-10-19;
 # data lama expired sendiri max 2 jam). ID arsip: c17238a26010462e8a47cbc20f3b3cbc
