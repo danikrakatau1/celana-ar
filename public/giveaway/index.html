@@ -126,6 +126,9 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 .foot{text-align:center;color:var(--mut2);font-size:12.5px;margin-top:26px}
 .rise{animation:riseIn .8s cubic-bezier(.22,1,.36,1) both}
 @keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.wcard.pop{animation:winnerPop .8s cubic-bezier(.22,1,.36,1) both,winnerGlow 1.5s ease .25s 2}
+@keyframes winnerPop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.045);opacity:1}100%{transform:scale(1)}}
+@keyframes winnerGlow{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 46px rgba(245,158,11,.5)}}
 </style>
 </head>
 <body>
@@ -311,6 +314,52 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     if (winners && winners.length) winnersSec.classList.add("show");
   }
 
+  var prevWinCount = null;
+
+  function fireConfetti(){
+    var cv = document.getElementById("confettiCanvas");
+    if (!cv) {
+      cv = document.createElement("canvas");
+      cv.id = "confettiCanvas";
+      cv.style.cssText = "position:fixed;inset:0;z-index:999;pointer-events:none";
+      document.body.appendChild(cv);
+    }
+    var cx = cv.getContext("2d");
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var colors = ["#6366f1","#22d3ee","#fbbf24","#34d399","#fb7185","#e2e8f0"];
+    var parts = [];
+    for (var i = 0; i < 170; i++) {
+      parts.push({
+        x: cv.width / 2 + (Math.random() - 0.5) * cv.width * 0.7,
+        y: cv.height * 0.32,
+        vx: (Math.random() - 0.5) * 11,
+        vy: -(Math.random() * 9 + 5),
+        w: Math.random() * 8 + 5,
+        h: Math.random() * 5 + 3,
+        r: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.3,
+        c: colors[i % colors.length]
+      });
+    }
+    var t0 = performance.now();
+    (function frame(t){
+      var el = t - t0;
+      cx.clearRect(0, 0, cv.width, cv.height);
+      var alive = false;
+      for (var j = 0; j < parts.length; j++) {
+        var p = parts[j];
+        p.vy += 0.22; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.r += p.vr;
+        if (p.y < cv.height + 30) alive = true;
+        cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r);
+        cx.globalAlpha = Math.max(0, 1 - el / 3800);
+        cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        cx.restore();
+      }
+      if (alive && el < 4200) requestAnimationFrame(frame);
+      else { cx.clearRect(0, 0, cv.width, cv.height); if (cv.parentNode) cv.parentNode.removeChild(cv); }
+    })(t0);
+  }
+
   function loadStatus(){
     fetch("/api/giveaway/status", { headers: { "accept": "application/json" } })
       .then(function(r){ return r.json(); })
@@ -318,6 +367,13 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
         if (typeof d.closeMs === "number") closeMs = d.closeMs;
         countLine.innerHTML = "Sudah ada <b>" + (d.count || 0) + " peserta</b> terdaftar";
         renderWinners(d.winners);
+        var wc = (d.winners || []).length;
+        if (prevWinCount !== null && wc > prevWinCount) {
+          var lastCard = wgrid.lastElementChild;
+          if (lastCard) lastCard.classList.add("pop");
+          fireConfetti();
+        }
+        prevWinCount = wc;
         if (d.open === false) showClosed();
       })
       .catch(function(){});
