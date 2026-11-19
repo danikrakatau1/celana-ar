@@ -159,6 +159,60 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 @keyframes countPop{0%{transform:scale(1.7);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.92);opacity:0}}
 .ts-box{display:none;justify-content:center;margin:14px 0 2px}
 .ts-box.show{display:flex;animation:winIn .5s cubic-bezier(.22,1,.36,1) both}
+/* ===== POLISH: tema gelap dipoles, tema terang = Konsep C Ceria Playful ===== */
+.bg .grid{background-image:radial-gradient(rgba(148,163,184,.14) 1px,transparent 1.5px);background-size:26px 26px}
+.hero .trophy-wrap{display:flex;justify-content:center;margin-bottom:4px}
+.hero .trophy-svg{width:86px;height:86px;animation:floaty 3.6s ease-in-out infinite;filter:drop-shadow(0 12px 24px rgba(245,158,11,.35))}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
+.hero h1 .grad{background:linear-gradient(110deg,#6366f1 10%,#22d3ee 38%,#a5b4fc 55%,#22d3ee 72%,#6366f1 95%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 6s linear infinite}
+@keyframes shimmer{to{background-position:220% 0}}
+.hero h1 .gold{background:linear-gradient(120deg,#f59e0b,#fde68a 55%,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;animation:goldPulse 2.2s ease-in-out infinite}
+@keyframes goldPulse{0%,100%{filter:drop-shadow(0 0 5px rgba(251,191,36,.35))}50%{filter:drop-shadow(0 0 16px rgba(251,191,36,.65))}}
+.icard{position:relative;overflow:hidden;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.icard::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad)}
+.icard:hover{transform:translateY(-4px);border-color:rgba(99,102,241,.55)}
+.icard .ic{width:42px;height:42px;border-radius:12px;background:var(--grad-soft);border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;color:#a5b4fc;margin-bottom:12px}
+.icard .ic svg{width:22px;height:22px}
+.feat svg{width:15px;height:15px;color:var(--ok);flex:none}
+.marquee{margin:20px auto 2px;max-width:820px;overflow:hidden;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke);padding:11px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.mq-track{display:inline-flex;white-space:nowrap;animation:mq 26s linear infinite;font-weight:800;letter-spacing:.18em;font-size:13px;color:var(--mut)}
+.mq-track span{padding-right:14px}
+@keyframes mq{to{transform:translateX(-50%)}}
+.cd{align-items:center}
+.cd-col{font-family:"JetBrains Mono",monospace;font-size:30px;font-weight:700;color:var(--mut);animation:blink 1s steps(1) infinite}
+@keyframes blink{0%,55%{opacity:1}56%,100%{opacity:.15}}
+.cd-box{box-shadow:0 0 26px rgba(99,102,241,.16),var(--shadow)}
+.cd-box .n{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wempty{text-align:center;padding:26px 20px;border:1px dashed var(--stroke2);border-radius:var(--r-lg);color:var(--mut)}
+.wempty svg{width:52px;height:52px;color:var(--mut2);opacity:.75;margin-bottom:8px}
+.wempty .t1{font-size:17px;font-weight:800;color:var(--txt)}
+.wempty .t2{font-size:14px;margin-top:4px;line-height:1.6}
+.steps2{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:820px;margin:30px auto 0}
+@media (max-width:640px){.steps2{grid-template-columns:1fr}}
+.step{background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r-md);padding:18px;text-align:center}
+.step .num{width:38px;height:38px;border-radius:50%;background:var(--grad);color:#fff;font-weight:800;font-size:17px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:9px;box-shadow:0 8px 20px rgba(79,70,229,.35)}
+.step .st{font-weight:800;font-size:15.5px}
+.step .sd{color:var(--mut);font-size:13px;margin-top:3px;line-height:1.55}
+.card{--cardbg:#0c1122;background:linear-gradient(var(--cardbg),var(--cardbg)) padding-box,linear-gradient(135deg,rgba(99,102,241,.55),rgba(34,211,238,.28),rgba(99,102,241,.14)) border-box;border:1px solid transparent}
+.btn-submit{position:relative;overflow:hidden}
+.btn-submit::after{content:"";position:absolute;top:0;left:-90%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);transition:left .65s ease}
+.btn-submit:hover::after{left:135%}
+:root[data-theme="light"]{--cardbg:#ffffff}
+:root[data-theme="light"] .bg{background:radial-gradient(900px 520px at 88% -8%,rgba(196,181,253,.5),transparent 62%),radial-gradient(760px 520px at -12% 88%,rgba(249,168,212,.42),transparent 62%),radial-gradient(640px 420px at 55% 112%,rgba(125,211,252,.35),transparent 60%),var(--bg)}
+:root[data-theme="light"] .bg::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle 4px at 12% 22%,#6366f1 98%,transparent),radial-gradient(circle 3px at 22% 64%,#ec4899 98%,transparent),radial-gradient(circle 4px at 31% 14%,#f59e0b 98%,transparent),radial-gradient(circle 3px at 43% 78%,#22d3ee 98%,transparent),radial-gradient(circle 4px at 57% 10%,#ec4899 98%,transparent),radial-gradient(circle 3px at 66% 58%,#6366f1 98%,transparent),radial-gradient(circle 4px at 74% 26%,#34d399 98%,transparent),radial-gradient(circle 3px at 83% 70%,#f59e0b 98%,transparent),radial-gradient(circle 4px at 90% 16%,#22d3ee 98%,transparent),radial-gradient(circle 3px at 6% 82%,#f59e0b 98%,transparent),radial-gradient(circle 3px at 95% 88%,#ec4899 98%,transparent),radial-gradient(circle 4px at 50% 92%,#6366f1 98%,transparent);opacity:.55}
+:root[data-theme="light"] .hero h1 .grad{background:linear-gradient(110deg,#ec4899 5%,#6366f1 45%,#ec4899 95%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text}
+:root[data-theme="light"] .icard{background:#fff;border-color:rgba(15,23,42,.08)}
+:root[data-theme="light"] .icard .ic{color:#6366f1}
+:root[data-theme="light"] .feat{background:#fff;color:#0d1526;border-color:rgba(15,23,42,.12)}
+:root[data-theme="light"] .cd-box{border:0;color:#fff}
+:root[data-theme="light"] .cd-box .n{background:none;color:#fff;-webkit-text-fill-color:#fff}
+:root[data-theme="light"] .cd-box .u{color:rgba(255,255,255,.85)}
+:root[data-theme="light"] .cd-box.b1{background:#6366f1;box-shadow:0 14px 28px rgba(99,102,241,.35)}
+:root[data-theme="light"] .cd-box.b2{background:#ec4899;box-shadow:0 14px 28px rgba(236,72,153,.35)}
+:root[data-theme="light"] .cd-box.b3{background:#f59e0b;box-shadow:0 14px 28px rgba(245,158,11,.35)}
+:root[data-theme="light"] .cd-box.b4{background:#0ea5e9;box-shadow:0 14px 28px rgba(14,165,233,.35)}
+:root[data-theme="light"] .step{background:#fff}
+:root[data-theme="light"] .wempty{background:#fff}
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
@@ -185,7 +239,8 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 
   <section class="hero rise">
     <div class="eyebrow">GIVEAWAY SPESIAL &middot; MOAI.MY.ID</div>
-    <h1>MENANGKAN VPS<br><span class="grad">1 CORE GRATIS</span></h1>
+    <div class="trophy-wrap"><svg class="trophy-svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+    <h1>MENANGKAN VPS<br><span class="grad">1 CORE</span> <span class="gold">GRATIS</span></h1>
     <p class="sub">Dua pemenang masing-masing dapat VPS 1 Core, RAM 2 GB, storage 20 GB selama 1 bulan.<br>Lokasi server bebas pilih: Sydney, Norwegia, Polandia, London, Chicago, San Jose.</p>
   </section>
 
@@ -201,24 +256,32 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   </div>
 
   <section class="cards rise" style="animation-delay:.06s">
-    <div class="icard"><div class="lab">HADIAH</div><div class="val">1 Core - 2 GB - 20 GB</div></div>
-    <div class="icard"><div class="lab">PENGUNDIAN</div><div class="val">21 Nov 2026, 20.00 WIB</div></div>
-    <div class="icard"><div class="lab">PEMENANG</div><div class="val">2 orang - undi satu-satu</div></div>
+    <div class="icard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg></div><div class="lab">HADIAH</div><div class="val">1 Core - 2 GB - 20 GB</div></div>
+    <div class="icard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5 16 16.3V14"/><circle cx="16" cy="16" r="6"/></svg></div><div class="lab">PENGUNDIAN</div><div class="val">21 Nov 2026, 20.00 WIB</div></div>
+    <div class="icard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="lab">PEMENANG</div><div class="val">2 orang - undi satu-satu</div></div>
   </section>
 
   <div class="feats rise" style="animation-delay:.1s">
-    <span class="feat"><span class="ck">&#10003;</span>Full Root Access</span>
-    <span class="feat"><span class="ck">&#10003;</span>Online 24 Jam Nonstop</span>
-    <span class="feat"><span class="ck">&#10003;</span>Bebas Pilih Lokasi</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M9 2v2"/><path d="M9 20v2"/><path d="M20 9h2"/><path d="M20 15h2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg>CPU 1 Core</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v3"/><path d="M10 19v3"/><path d="M14 19v3"/><path d="M18 19v3"/><path d="M8 11V9"/><path d="M16 11V9"/><path d="M12 11V9"/><path d="M2 11h20"/><path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2H2z"/></svg>RAM 2 GB</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></svg>Storage 20 GB</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>Full Root Access</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Online 24 Jam</span>
+    <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>Bebas Pilih Lokasi</span>
   </div>
+
+  <div class="marquee" aria-hidden="true"><div class="mq-track"><span>SYDNEY &#10022; NORWEGIA &#10022; POLANDIA &#10022; LONDON &#10022; CHICAGO &#10022; SAN JOSE &#10022;</span><span>SYDNEY &#10022; NORWEGIA &#10022; POLANDIA &#10022; LONDON &#10022; CHICAGO &#10022; SAN JOSE &#10022;</span></div></div>
 
   <div class="cd-wrap rise" style="animation-delay:.14s">
     <div class="cd-lab" id="cdLab">PENDAFTARAN DITUTUP DALAM</div>
     <div class="cd">
-      <div class="cd-box"><div class="n" id="cdD">--</div><div class="u">HARI</div></div>
-      <div class="cd-box"><div class="n" id="cdH">--</div><div class="u">JAM</div></div>
-      <div class="cd-box"><div class="n" id="cdM">--</div><div class="u">MENIT</div></div>
-      <div class="cd-box"><div class="n" id="cdS">--</div><div class="u">DETIK</div></div>
+      <div class="cd-box b1"><div class="n" id="cdD">--</div><div class="u">HARI</div></div>
+      <div class="cd-col">:</div>
+      <div class="cd-box b2"><div class="n" id="cdH">--</div><div class="u">JAM</div></div>
+      <div class="cd-col">:</div>
+      <div class="cd-box b3"><div class="n" id="cdM">--</div><div class="u">MENIT</div></div>
+      <div class="cd-col">:</div>
+      <div class="cd-box b4"><div class="n" id="cdS">--</div><div class="u">DETIK</div></div>
     </div>
     <div class="count-line" id="countLine">Memuat jumlah peserta&hellip;</div>
   </div>
@@ -234,10 +297,15 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   </section>
   <div class="bigcount" id="bigCountPub"></div>
 
-  <section class="winners" id="winners">
+  <section class="winners show" id="winners">
     <h2>&#127942; Pemenang Giveaway</h2>
     <div class="wsub">Diundi langsung pada Sabtu, 21 November 2026 pukul 20.00 WIB. Nama pemenang tampil di sini dan tidak berubah.</div>
     <div class="wgrid" id="wgrid"></div>
+    <div class="wempty" id="wempty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <div class="t1">Belum Diundi</div>
+      <div class="t2">Bisa jadi nama kamu yang tampil di sini. Daftar sekarang — pengundian Sabtu, 21 November 2026 pukul 20.00 WIB.</div>
+    </div>
   </section>
 
   <section class="card rise" style="animation-delay:.18s" id="formCard">
@@ -271,7 +339,11 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
     </div>
   </section>
 
-  <div class="steps">Cara ikut: <b>1. Isi form</b> &nbsp;-&nbsp; <b>2. Simpan nomor undian</b> &nbsp;-&nbsp; <b>3. Tunggu pengumuman pemenang</b></div>
+  <div class="steps2">
+    <div class="step"><div class="num">1</div><div class="st">Isi Form</div><div class="sd">Nama &amp; nomor WhatsApp aktif — 30 detik selesai.</div></div>
+    <div class="step"><div class="num">2</div><div class="st">Simpan Nomor Undian</div><div class="sd">Nomor GA kamu adalah bukti ikut undian. Jangan sampai hilang.</div></div>
+    <div class="step"><div class="num">3</div><div class="st">Tunggu Pengundian</div><div class="sd">Sabtu 21 Nov 2026, 20.00 WIB — nama pemenang tampil di halaman ini.</div></div>
+  </div>
   <div class="foot">&copy; 2026 moai.my.id - TempMail PRO</div>
 </main>
 
@@ -354,7 +426,8 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
       card.appendChild(trophy); card.appendChild(slot); card.appendChild(nm); card.appendChild(no);
       wgrid.appendChild(card);
     });
-    if (winners && winners.length) winnersSec.classList.add("show");
+    winnersSec.classList.add("show");
+    document.getElementById("wempty").style.display = (winners && winners.length) ? "none" : "";
   }
 
   var prevWinCount = null;
