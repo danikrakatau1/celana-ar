@@ -65,6 +65,26 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
 .ga-shuffle .nm{font-size:clamp(38px,9vw,62px);font-weight:800;line-height:1.15;margin:14px 0 6px;min-height:1.2em;word-break:break-word}
 .ga-shuffle .no{font-family:"JetBrains Mono",monospace;color:var(--mut);font-size:15px;min-height:1.4em}
 .ga-shuffle.won .nm{background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.br-grid{display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-height:32vh;overflow:auto;margin-top:16px;padding:4px}
+.br-grid.show{display:flex}
+.br-grid .chip{font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:99px;background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.3);color:#e2e8f0;transition:all .35s}
+.br-grid .chip.out{opacity:.25;text-decoration:line-through;transform:scale(.92)}
+.br-grid .chip.fin{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.6);color:#fde68a}
+.giftwrap{display:none;text-align:center}
+.giftwrap.show{display:block}
+.gift{position:relative;width:130px;height:118px;margin:8px auto 0}
+.gift-body{position:absolute;bottom:0;left:5px;width:120px;height:88px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#22d3ee)}
+.gift-body::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:20px;transform:translateX(-50%);background:#f59e0b}
+.gift-lid{position:absolute;top:0;left:0;width:130px;height:30px;border-radius:8px;background:linear-gradient(135deg,#818cf8,#67e8f9);z-index:2;transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .45s}
+.gift-lid::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:20px;transform:translateX(-50%);background:#f59e0b}
+.giftwrap.shake .gift{animation:giftShake .38s linear infinite}
+@keyframes giftShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.6deg)}75%{transform:rotate(2.6deg)}}
+.giftwrap.open .gift-lid{transform:translate(52px,-70px) rotate(26deg);opacity:0}
+.giftwrap.open .gift-body{box-shadow:0 0 70px rgba(245,158,11,.55)}
+.bigcount{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:clamp(90px,22vw,170px);font-weight:800;color:#fff;text-shadow:0 10px 50px rgba(0,0,0,.5);z-index:5;pointer-events:none}
+.bigcount.show{display:flex}
+.bigcount span{animation:countPop .92s cubic-bezier(.22,1,.36,1) both}
+@keyframes countPop{0%{transform:scale(1.7);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.92);opacity:0}}
 @keyframes gaPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 </style>
 </head>
@@ -267,45 +287,130 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
     })(t0);
   }
 
-  function runShuffle(winner, done){
-    var pool = [];
-    (state.entries || []).forEach(function(e){ pool.push(e.name); });
+  function fireFireworks(){
+    var cvs = document.createElement("canvas");
+    cvs.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9998";
+    document.body.appendChild(cvs);
+    var ctx = cvs.getContext("2d");
+    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+    var cols = ["#f59e0b","#fbbf24","#6366f1","#22d3ee","#f472b6","#ffffff"];
+    var sparks = [];
+    var bursts = 0;
+    var start = performance.now();
+    function burst(){
+      var x = window.innerWidth * (0.15 + Math.random() * 0.7), y = window.innerHeight * (0.12 + Math.random() * 0.35);
+      var col = cols[Math.floor(Math.random() * cols.length)];
+      for (var i = 0; i < 42; i++) {
+        var a = (i / 42) * Math.PI * 2, sp = 2 + Math.random() * 3.4;
+        sparks.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, col: col });
+      }
+    }
+    (function frame(now){
+      var el = now - start;
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (el < 1800 && bursts < 7 && el > bursts * 260) { burst(); bursts++; }
+      sparks = sparks.filter(function(s){ return s.life > 0; });
+      sparks.forEach(function(s){
+        s.x += s.vx; s.y += s.vy; s.vy += 0.03; s.vx *= 0.985; s.vy *= 0.985; s.life -= 0.011;
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.fillStyle = s.col;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.4, 0, 7); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      if (el < 3400) requestAnimationFrame(frame);
+      else cvs.remove();
+    })(start);
+  }
+
+  function runShuffle(winner, finalists, poolNames, done){
+    var pool = (poolNames && poolNames.length) ? poolNames.slice() : [];
+    if (!pool.length) { (state.entries || []).forEach(function(e){ pool.push(e.name); }); }
     if (!pool.length) pool = [winner.name];
+    var fin = (finalists && finalists.length) ? finalists.slice() : [winner.name];
+    var finSet = {};
+    fin.forEach(function(n){ finSet[n] = true; });
     var ov = document.getElementById("shuffleOv");
     var nm = document.getElementById("shuffleName");
     var no = document.getElementById("shuffleNo");
     var lbl = document.getElementById("shuffleLbl");
+    var grid = document.getElementById("brGrid");
+    var gift = document.getElementById("giftWrap");
+    var bc = document.getElementById("bigCount");
     ov.classList.remove("won");
+    gift.className = "giftwrap";
+    bc.classList.remove("show"); bc.innerHTML = "";
+    nm.style.display = ""; no.style.display = "";
+    grid.innerHTML = "";
+    var chipEls = pool.map(function(n){
+      var s = document.createElement("span");
+      s.className = "chip" + (finSet[n] ? " fin" : "");
+      s.textContent = n;
+      grid.appendChild(s);
+      return s;
+    });
+    grid.classList.remove("show");
     ov.classList.add("show");
-    no.textContent = "";
-    nm.textContent = pool[0];
-    // Seremoni 60 detik: cepat -> melambat -> merayap, berhenti di pemenang.
+    var elimQueue = chipEls.filter(function(c){ return !c.classList.contains("fin"); });
+    for (var i = elimQueue.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = elimQueue[i]; elimQueue[i] = elimQueue[j]; elimQueue[j] = t; }
+    var survivors = pool.slice();
     var dur = 60000, start = performance.now();
-    function phase(p){
-      if (p < 0.34) return "Mengacak " + pool.length + " nama peserta...";
-      if (p < 0.67) return "Menyaring kandidat...";
-      if (p < 0.9) return "Hampir sampai...";
-      return "Satu nama akan terpilih...";
-    }
-    (function step(){
+    var lastFlick = 0, lastElim = 0, lastCount = -1, giftShown = false;
+    var elimEvery = elimQueue.length ? Math.max(110, 28500 / elimQueue.length) : 0;
+    var timer = setInterval(function(){
       var el = performance.now() - start;
-      var p = el / dur;
-      if (p >= 1) {
+      var rem = dur - el;
+      if (el < 55000) {
+        var rs = Math.ceil(rem / 1000);
+        no.textContent = "Pemenang diumumkan dalam " + Math.floor(rs / 60) + ":" + (rs % 60 < 10 ? "0" : "") + (rs % 60);
+      }
+      if (el < 15000) {
+        lbl.textContent = "Mengacak " + pool.length + " nama peserta...";
+        if (el - lastFlick > 60) { lastFlick = el; nm.textContent = pool[Math.floor(Math.random() * pool.length)]; }
+      } else if (el < 45000) {
+        grid.classList.add("show");
+        lbl.textContent = "Battle royale — tersisa " + survivors.length + " dari " + pool.length + " peserta...";
+        if (elimQueue.length && el - lastElim > elimEvery) {
+          lastElim = el;
+          var chip = elimQueue.shift();
+          chip.classList.add("out");
+          var idx = survivors.indexOf(chip.textContent);
+          if (idx >= 0) survivors.splice(idx, 1);
+        }
+        if (el - lastFlick > 120) { lastFlick = el; nm.textContent = survivors[Math.floor(Math.random() * survivors.length)] || winner.name; }
+      } else if (el < 55000) {
+        lbl.textContent = fin.length + " finalis tersisa — siapa yang bertahan?";
+        var slow = 250 + ((el - 45000) / 10000) * 550;
+        if (el - lastFlick > slow) { lastFlick = el; nm.textContent = fin[Math.floor(Math.random() * fin.length)]; }
+      } else if (el < 57000) {
+        if (!giftShown) {
+          giftShown = true;
+          nm.style.display = "none"; grid.classList.remove("show");
+          no.textContent = "Pemenangnya ada di dalam kotak...";
+          lbl.textContent = "Siap-siap...";
+          gift.classList.add("show", "shake");
+        }
+      } else if (el < 60000) {
+        var c = Math.ceil(rem / 1000);
+        if (c !== lastCount && c >= 1) {
+          lastCount = c;
+          bc.innerHTML = "<span>" + c + "</span>";
+          bc.classList.add("show");
+        }
+      } else {
+        clearInterval(timer);
+        bc.classList.remove("show");
+        gift.classList.remove("shake");
+        gift.classList.add("open");
+        nm.style.display = "";
         nm.textContent = winner.name;
         no.textContent = "Nomor undian " + winner.no;
         lbl.textContent = "🏆 Pemenang terpilih!";
         ov.classList.add("won");
         fireConfetti();
-        setTimeout(function(){ ov.classList.remove("show"); if (done) done(); }, 2400);
-        return;
+        fireFireworks();
+        setTimeout(function(){ ov.classList.remove("show"); if (done) done(); }, 3600);
       }
-      lbl.textContent = phase(p);
-      nm.textContent = pool[Math.floor(Math.random() * pool.length)];
-      var rem = Math.ceil((dur - el) / 1000);
-      no.textContent = "Pemenang diumumkan dalam " + Math.floor(rem / 60) + ":" + (rem % 60 < 10 ? "0" : "") + (rem % 60);
-      var delay = p < 0.65 ? 60 : (p < 0.9 ? 60 + Math.pow((p - 0.65) / 0.25, 2) * 260 : 900);
-      setTimeout(step, delay);
-    })();
+    }, 50);
   }
 
   btnDraw.addEventListener("click", function(){
@@ -318,7 +423,7 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
         btnDraw.textContent = "UNDI SEKARANG";
         if (res.d && res.d.ok) {
           var w = res.d.winner;
-          runShuffle(w, function(){
+          runShuffle(w, res.d.finalists, res.d.pool, function(){
             document.getElementById("drName").textContent = w.name;
             document.getElementById("drMeta").textContent = "Pemenang " + w.slot + " - Nomor undian " + w.no;
             var dr = document.getElementById("drawResult");
@@ -409,7 +514,10 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
     <div class="lbl" id="shuffleLbl">Mengundi pemenang...</div>
     <div class="nm" id="shuffleName">...</div>
     <div class="no" id="shuffleNo"></div>
+    <div class="br-grid" id="brGrid"></div>
+    <div class="giftwrap" id="giftWrap"><div class="gift"><div class="gift-lid"></div><div class="gift-body"></div></div></div>
   </div>
+  <div class="bigcount" id="bigCount"></div>
 </div>
 </body>
 </html>
