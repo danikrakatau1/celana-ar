@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Giveaway — moai.my.id</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Crect x='3' y='5' width='18' height='14' rx='3' stroke='%236366f1' stroke-width='2'/%3E%3Cpath d='M4.5 7.5l7.5 5.5 7.5-5.5' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a14; --panel:rgba(148,163,184,.055); --stroke:rgba(148,163,184,.15);
+  --txt:#eef2fd; --mut:#93a1c0; --mut2:#64748f;
+  --grad:linear-gradient(135deg,#6366f1 0%,#22d3ee 100%);
+  --ok:#34d399; --danger:#fb7185; --amber:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:26px;font-weight:800}
+.sub{color:var(--mut);font-size:14px;margin-top:5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
+@media (max-width:640px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--panel);border:1px solid var(--stroke);border-radius:14px;padding:18px 20px}
+.stat .lab{font-size:11.5px;font-weight:800;letter-spacing:.12em;color:#a5b4fc;margin-bottom:6px}
+.stat .val{font-size:26px;font-weight:800}
+.panel{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;padding:22px;margin-bottom:20px}
+.panel h2{font-size:18px;font-weight:800;margin-bottom:12px}
+.btn{border:0;cursor:pointer;font:inherit;font-weight:800;border-radius:12px;padding:13px 22px;transition:transform .15s ease, opacity .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.btn-draw{background:var(--grad);color:#fff;font-size:17px;width:100%;padding:16px;box-shadow:0 10px 26px rgba(79,70,229,.35)}
+.btn-danger{background:rgba(251,113,133,.12);color:#fda4af;border:1px solid rgba(251,113,133,.4)}
+.btn-ghost{background:var(--panel);color:var(--txt);border:1px solid var(--stroke)}
+.winner-row{display:flex;align-items:center;gap:14px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.4);border-radius:12px;padding:14px 16px;margin-bottom:10px;animation:winIn .6s cubic-bezier(.22,1,.36,1) both}
+@keyframes winIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.winner-row .slot{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--amber)}
+.winner-row .nm{font-size:18px;font-weight:800}
+.winner-row .meta{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--mut);font-size:12px;letter-spacing:.08em;padding:9px 10px;border-bottom:1px solid var(--stroke)}
+td{padding:9px 10px;border-bottom:1px solid rgba(148,163,184,.07);vertical-align:middle}
+tr.is-winner td{background:rgba(251,191,36,.06)}
+.mono{font-family:"JetBrains Mono",monospace;font-size:13px}
+.del{background:rgba(251,113,133,.12);color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:8px;padding:5px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.empty{color:var(--mut2);text-align:center;padding:22px 0;font-size:14px}
+.msg{display:none;border-radius:12px;padding:12px 15px;font-size:14px;font-weight:600;margin-bottom:16px}
+.msg.show{display:block}
+.msg.err{background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.45);color:#fda4af}
+.msg.ok{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.45);color:#a7f3d0}
+.danger-zone{border-color:rgba(251,113,133,.35)}
+.danger-zone .row{display:flex;gap:10px;flex-wrap:wrap}
+.draw-result{display:none;text-align:center;padding:18px 10px 6px}
+.draw-result.show{display:block;animation:winIn .7s cubic-bezier(.22,1,.36,1) both}
+.draw-result .trophy{font-size:40px}
+.draw-result .wn{font-size:28px;font-weight:800;margin-top:6px}
+.draw-result .wm{font-family:"JetBrains Mono",monospace;color:var(--mut);margin-top:4px}
+.small{color:var(--mut2);font-size:12.5px;margin-top:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Dashboard Giveaway</h1>
+  <div class="sub">moai.my.id/giveaway &middot; Undi: Sabtu, 21 November 2026 pukul 20.00 WIB &middot; Halaman ini khusus admin.</div>
+
+  <div class="msg" id="msg"></div>
+
+  <section class="stats">
+    <div class="stat"><div class="lab">TOTAL PESERTA</div><div class="val" id="stCount">-</div></div>
+    <div class="stat"><div class="lab">PEMENANG TERUNDI</div><div class="val" id="stWin">-</div></div>
+    <div class="stat"><div class="lab">SISA KOLAM UNDIAN</div><div class="val" id="stPool">-</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Pemenang</h2>
+    <div id="winnerList"><div class="empty">Belum ada pemenang terundi.</div></div>
+    <div class="draw-result" id="drawResult">
+      <div class="trophy">&#127942;</div>
+      <div class="wn" id="drName">-</div>
+      <div class="wm" id="drMeta">-</div>
+    </div>
+    <button class="btn btn-draw" id="btnDraw" style="margin-top:14px">UNDI SEKARANG</button>
+    <div class="small">Sekali klik mengundi SATU pemenang secara acak dari peserta yang belum pernah menang. Hasilnya langsung terkunci dan tampil di halaman publik /giveaway. Maksimal 2 pemenang.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Daftar Peserta</h2>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>NOMOR</th><th>NAMA</th><th>WHATSAPP</th><th>WAKTU DAFTAR</th><th></th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="5" class="empty">Memuat...</td></tr></tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="panel danger-zone">
+    <h2>Zona Berbahaya</h2>
+    <div class="row">
+      <button class="btn btn-ghost" id="btnResetWin">Reset Pemenang</button>
+      <button class="btn btn-danger" id="btnResetAll">Reset Semua Data</button>
+    </div>
+    <div class="small">Reset Pemenang mengosongkan daftar pemenang saja (peserta tetap ada) &mdash; cocok buat latihan undi sebelum hari-H. Reset Semua Data menghapus pemenang DAN seluruh peserta.</div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var msg = document.getElementById("msg");
+  var tbody = document.getElementById("tbody");
+  var winnerList = document.getElementById("winnerList");
+  var btnDraw = document.getElementById("btnDraw");
+  var state = { entries: [], winners: [] };
+
+  function showMsg(text, ok){
+    msg.textContent = text;
+    msg.className = "msg show " + (ok ? "ok" : "err");
+    setTimeout(function(){ msg.classList.remove("show"); }, 6000);
+  }
+  function fmtTime(ts){
+    try {
+      return new Date(ts).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " WIB";
+    } catch(e){ return "-"; }
+  }
+  function api(path, opts){
+    return fetch(path, opts || {}).then(function(r){
+      return r.json().then(function(d){ return { status: r.status, d: d }; });
+    });
+  }
+
+  function render(){
+    document.getElementById("stCount").textContent = state.entries.length;
+    document.getElementById("stWin").textContent = state.winners.length + " / 2";
+    var wonWa = {};
+    state.winners.forEach(function(w){ wonWa[w.wa] = true; });
+    var pool = state.entries.filter(function(e){ return !wonWa[e.wa]; });
+    document.getElementById("stPool").textContent = pool.length;
+    btnDraw.disabled = state.winners.length >= 2 || pool.length === 0;
+
+    winnerList.innerHTML = "";
+    if (!state.winners.length) {
+      winnerList.innerHTML = '<div class="empty">Belum ada pemenang terundi.</div>';
+    } else {
+      state.winners.forEach(function(w){
+        var row = document.createElement("div");
+        row.className = "winner-row";
+        var left = document.createElement("div");
+        var slot = document.createElement("div"); slot.className = "slot"; slot.textContent = "PEMENANG " + w.slot;
+        var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = w.name;
+        var meta = document.createElement("div"); meta.className = "meta"; meta.textContent = w.no + " - " + w.wa + " - " + fmtTime(w.ts);
+        left.appendChild(slot); left.appendChild(nm); left.appendChild(meta);
+        row.appendChild(left);
+        winnerList.appendChild(row);
+      });
+    }
+
+    tbody.innerHTML = "";
+    if (!state.entries.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Belum ada peserta.</td></tr>';
+    } else {
+      state.entries.forEach(function(e){
+        var tr = document.createElement("tr");
+        if (wonWa[e.wa]) tr.className = "is-winner";
+        var tdNo = document.createElement("td"); tdNo.className = "mono"; tdNo.textContent = e.no;
+        var tdNm = document.createElement("td"); tdNm.textContent = e.name + (wonWa[e.wa] ? " \uD83C\uDFC6" : "");
+        var tdWa = document.createElement("td"); tdWa.className = "mono"; tdWa.textContent = e.wa;
+        var tdTs = document.createElement("td"); tdTs.textContent = fmtTime(e.ts);
+        var tdAct = document.createElement("td");
+        var del = document.createElement("button");
+        del.className = "del"; del.textContent = "Hapus";
+        del.addEventListener("click", function(){
+          if (!confirm("Hapus peserta " + e.name + " (" + e.no + ")?")) return;
+          api("/api/giveaway/admin/remove", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ wa: e.wa }) })
+            .then(function(res){
+              if (res.d && res.d.ok) { showMsg("Peserta " + e.no + " dihapus.", true); load(); }
+              else showMsg("Gagal menghapus: " + ((res.d && res.d.error) || res.status), false);
+            })
+            .catch(function(){ showMsg("Koneksi bermasalah.", false); });
+        });
+        tdAct.appendChild(del);
+        tr.appendChild(tdNo); tr.appendChild(tdNm); tr.appendChild(tdWa); tr.appendChild(tdTs); tr.appendChild(tdAct);
+        tbody.appendChild(tr);
+      });
+    }
+  }
+
+  function load(){
+    api("/api/giveaway/admin/list")
+      .then(function(res){
+        if (res.status === 401) { showMsg("Sesi admin tidak valid. Buka ulang dashboard lewat link berkunci kamu.", false); return; }
+        if (res.status === 503) { showMsg("Dashboard belum dikonfigurasi (secret admin belum dipasang).", false); return; }
+        state.entries = res.d.entries || [];
+        state.winners = res.d.winners || [];
+        render();
+      })
+      .catch(function(){});
+  }
+
+  btnDraw.addEventListener("click", function(){
+    var slot = state.winners.length + 1;
+    if (!confirm("Undi PEMENANG " + slot + " sekarang? Hasilnya langsung tampil di halaman publik dan terkunci.")) return;
+    btnDraw.disabled = true;
+    btnDraw.textContent = "MENGUNDI...";
+    api("/api/giveaway/admin/draw", { method: "POST" })
+      .then(function(res){
+        btnDraw.textContent = "UNDI SEKARANG";
+        if (res.d && res.d.ok) {
+          var w = res.d.winner;
+          document.getElementById("drName").textContent = w.name;
+          document.getElementById("drMeta").textContent = "Pemenang " + w.slot + " - Nomor undian " + w.no;
+          var dr = document.getElementById("drawResult");
+          dr.classList.remove("show"); void dr.offsetWidth; dr.classList.add("show");
+          showMsg("Pemenang " + w.slot + " terundi: " + w.name + " (" + w.no + "). Sudah tampil di /giveaway.", true);
+          load();
+        } else {
+          showMsg("Undian gagal: " + ((res.d && (res.d.msg || res.d.error)) || res.status), false);
+          btnDraw.disabled = false;
+        }
+      })
+      .catch(function(){
+        btnDraw.textContent = "UNDI SEKARANG";
+        showMsg("Koneksi bermasalah.", false);
+        btnDraw.disabled = false;
+      });
+  });
+
+  document.getElementById("btnResetWin").addEventListener("click", function(){
+    if (!confirm("Reset daftar pemenang? Peserta tetap ada. Hasil undi sebelumnya hilang.")) return;
+    api("/api/giveaway/admin/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope: "winners" }) })
+      .then(function(res){
+        if (res.d && res.d.ok) { document.getElementById("drawResult").classList.remove("show"); showMsg("Pemenang direset.", true); load(); }
+        else showMsg("Gagal reset.", false);
+      })
+      .catch(function(){ showMsg("Koneksi bermasalah.", false); });
+  });
+
+  document.getElementById("btnResetAll").addEventListener("click", function(){
+    if (!confirm("RESET SEMUA DATA? Seluruh peserta dan pemenang akan dihapus permanen.")) return;
+    if (!confirm("Yakin 100%? Tindakan ini tidak bisa dibatalkan.")) return;
+    api("/api/giveaway/admin/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope: "all" }) })
+      .then(function(res){
+        if (res.d && res.d.ok) { document.getElementById("drawResult").classList.remove("show"); showMsg("Semua data giveaway direset.", true); load(); }
+        else showMsg("Gagal reset.", false);
+      })
+      .catch(function(){ showMsg("Koneksi bermasalah.", false); });
+  });
+
+  load();
+  setInterval(load, 10000);
+})();
+</script>
+</body>
+</html>
