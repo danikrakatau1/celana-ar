@@ -226,6 +226,19 @@ function extractBody(rawStr) {
 const TS_SITE_KEY = "0x4AAAAAAGFDhp4eMUo9VAUW";
 const CLEAR_COOKIE = "tm_clear";
 const CLEAR_TTL = 3600; // umur cookie izin: 1 jam + terikat IP (keputusan user 18 Nov 2026; sebelumnya 24 jam tanpa ikatan)
+
+/* ---------------- Giveaway moai.my.id (19 Nov 2026) ----------------
+   Funnel: halaman utama → /giveaway/enter menerbitkan tiket HMAC
+   (10 menit, terikat IP, sekali pakai) → /giveaway memeriksa tiket
+   lalu memasang cookie sesi ga_sess (2 jam, terikat IP). Tanpa tiket/
+   sesi sah, /giveaway melempar balik ke halaman utama. Pendaftaran
+   ditutup 21 Nov 2026 19.00 WIB; undi 21 Nov 2026 20.00 WIB dari
+   /dashboardmoai (kunci admin = secret GIVEAWAY_ADMIN_KEY). */
+const GA_CLOSE_MS = Date.parse("2026-11-21T12:00:00Z");
+const GA_DRAW_LABEL = "Sabtu, 21 November 2026 pukul 20.00 WIB";
+const GA_TICKET_TTL = 600;
+const GA_SESS_TTL = 7200;
+const GA_MAX_WINNERS = 2;
 const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
 const RL = new Map();
 
@@ -504,6 +517,50 @@ export default {
       return json({ domains });
     }
 
+    /* ---------------- Giveaway ---------------- */
+    if (url.pathname === "/giveaway/enter" && request.method === "GET") {
+      const t = await makeGaTicket(request, env.TURNSTILE_SECRET);
+      return Response.redirect(new URL("/giveaway?t=" + encodeURIComponent(t), request.url).toString(), 302);
+    }
+    if (url.pathname === "/giveaway" || url.pathname === "/giveaway/" || url.pathname === "/giveaway/index.html") {
+      return handleGaPage(request, env);
+    }
+    if (url.pathname === "/api/giveaway/status" && request.method === "GET") {
+      const r = await gaStore(env).fetch("https://do/status");
+      const d = await r.json();
+      return json({ open: Date.now() < GA_CLOSE_MS, closeMs: GA_CLOSE_MS, drawLabel: GA_DRAW_LABEL, count: d.count || 0, winners: d.winners || [] });
+    }
+    if (url.pathname === "/api/giveaway/enter" && request.method === "POST") {
+      return handleGaEnter(request, env);
+    }
+    if (url.pathname === "/dashboardmoai" || url.pathname === "/dashboardmoai.html") {
+      return handleGaDashboard(request, env);
+    }
+    if (url.pathname.startsWith("/api/giveaway/admin/")) {
+      if (!env.GIVEAWAY_ADMIN_KEY) return json({ error: "dashboard belum dikonfigurasi" }, 503);
+      if (!(await checkGaAdmin(request, env))) return json({ error: "unauthorized" }, 401);
+      const sub = url.pathname.slice("/api/giveaway/admin/".length);
+      if (sub === "list" && request.method === "GET") {
+        const r = await gaStore(env).fetch("https://do/list");
+        return json(await r.json());
+      }
+      if (sub === "draw" && request.method === "POST") {
+        const r = await gaStore(env).fetch("https://do/draw", { method: "POST" });
+        return json(await r.json(), r.status);
+      }
+      if (sub === "remove" && request.method === "POST") {
+        const b = await request.json().catch(() => ({}));
+        const r = await gaStore(env).fetch("https://do/remove", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ wa: b.wa || "" }) });
+        return json(await r.json(), r.status);
+      }
+      if (sub === "reset" && request.method === "POST") {
+        const b = await request.json().catch(() => ({}));
+        const r = await gaStore(env).fetch("https://do/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope: b.scope === "all" ? "all" : "winners" }) });
+        return json(await r.json(), r.status);
+      }
+      return json({ error: "unknown" }, 404);
+    }
+
     // Sisanya = file statis (public/) lewat binding ASSETS. run_worker_first
     // di wrangler.toml bikin redirect host mail.* jalan juga untuk halaman.
     return env.ASSETS.fetch(request);
@@ -552,6 +609,238 @@ export class InboxStore {
       let idx = (await st.get("idx")) || [];
       idx = idx.filter((e) => e.id !== id);
       await st.put("idx", idx, { expirationTtl: TTL });
+      return Response.json({ ok: true });
+    }
+
+    return new Response("not found", { status: 404 });
+  }
+}
+
+/* ---------------- Giveaway: tiket, sesi, handler, store ---------------- */
+
+function gaStore(env) {
+  const id = env.GIVEAWAY_STORE.idFromName("giveaway-global");
+  return env.GIVEAWAY_STORE.get(id);
+}
+
+async function sha256Hex(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeGaTicket(request, secret) {
+  const exp = Math.floor(Date.now() / 1000) + GA_TICKET_TTL;
+  const nonce = Math.random().toString(36).slice(2, 10);
+  const payload = exp + "." + (await ipTag(request)) + "." + nonce;
+  return payload + "." + (await hmacB64(secret, "ga-ticket:" + payload));
+}
+
+async function checkGaTicket(request, secret, t) {
+  const parts = String(t || "").split(".");
+  if (parts.length !== 4) return false;
+  const exp = parseInt(parts[0], 10);
+  if (!exp || exp < Math.floor(Date.now() / 1000)) return false;
+  if (parts[1] !== (await ipTag(request))) return false;
+  return (await hmacB64(secret, "ga-ticket:" + parts[0] + "." + parts[1] + "." + parts[2])) === parts[3];
+}
+
+async function makeGaSession(request, secret) {
+  const exp = Math.floor(Date.now() / 1000) + GA_SESS_TTL;
+  const payload = exp + "." + (await ipTag(request));
+  return payload + "." + (await hmacB64(secret, "ga-sess:" + payload));
+}
+
+async function checkGaSession(request, secret) {
+  const cookie = request.headers.get("cookie") || "";
+  const m = cookie.match(/(?:^|; )ga_sess=([^;]+)/);
+  if (!m) return false;
+  const parts = decodeURIComponent(m[1]).split(".");
+  if (parts.length !== 3) return false;
+  const exp = parseInt(parts[0], 10);
+  if (!exp || exp < Math.floor(Date.now() / 1000)) return false;
+  if (parts[1] !== (await ipTag(request))) return false;
+  return (await hmacB64(secret, "ga-sess:" + parts[0] + "." + parts[1])) === parts[2];
+}
+
+async function checkGaAdmin(request, env) {
+  if (!env.GIVEAWAY_ADMIN_KEY) return false;
+  if ((request.headers.get("x-ga-admin-key") || "") === env.GIVEAWAY_ADMIN_KEY) return true;
+  const cookie = request.headers.get("cookie") || "";
+  const m = cookie.match(/(?:^|; )ga_admin=([^;]+)/);
+  if (!m) return false;
+  return decodeURIComponent(m[1]) === (await hmacB64(env.TURNSTILE_SECRET, "ga-admin:" + env.GIVEAWAY_ADMIN_KEY));
+}
+
+function normWa(raw) {
+  let d = String(raw || "").replace(/\D/g, "");
+  if (d.startsWith("0")) d = "62" + d.slice(1);
+  else if (d.startsWith("8")) d = "62" + d;
+  return d;
+}
+
+async function serveGaAsset(request, env, assetPath, sessVal) {
+  const assetReq = new Request(new URL(assetPath, request.url), { method: "GET" });
+  const resp = await env.ASSETS.fetch(assetReq);
+  const headers = new Headers(resp.headers);
+  headers.set("cache-control", "no-store");
+  if (sessVal) headers.append("set-cookie", "ga_sess=" + encodeURIComponent(sessVal) + "; Path=/; Max-Age=" + GA_SESS_TTL + "; HttpOnly; Secure; SameSite=Lax");
+  return new Response(resp.body, { status: resp.status, headers });
+}
+
+async function handleGaPage(request, env) {
+  const secret = env.TURNSTILE_SECRET;
+  if (await checkGaSession(request, secret)) {
+    return serveGaAsset(request, env, "/giveaway/index.html", null);
+  }
+  const url = new URL(request.url);
+  const t = url.searchParams.get("t") || "";
+  if (t && (await checkGaTicket(request, secret, t))) {
+    const h = await sha256Hex(t);
+    try {
+      const r = await gaStore(env).fetch("https://do/use-ticket", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ h }) });
+      const d = await r.json();
+      if (d && d.ok) {
+        const sess = await makeGaSession(request, secret);
+        return serveGaAsset(request, env, "/giveaway/index.html", sess);
+      }
+    } catch {}
+  }
+  return Response.redirect(new URL("/", request.url).toString(), 302);
+}
+
+async function handleGaEnter(request, env) {
+  if (!(await checkGaSession(request, env.TURNSTILE_SECRET))) {
+    return json({ error: "no_session", msg: "Sesi giveaway tidak ditemukan. Buka halaman giveaway lewat tombol di halaman utama." }, 403);
+  }
+  const ip = request.headers.get("cf-connecting-ip") || "x";
+  const now = Date.now();
+  const rec = RL.get("ga:" + ip);
+  if (rec && now < rec.reset && rec.n >= 10) return json({ error: "terlalu cepat, santai dulu" }, 429);
+  if (!rec || now >= rec.reset) RL.set("ga:" + ip, { n: 1, reset: now + 60000 }); else rec.n++;
+  if (now >= GA_CLOSE_MS) return json({ error: "closed", msg: "Pendaftaran sudah ditutup." }, 403);
+  let b = {};
+  try { b = await request.json(); } catch {}
+  const name = String(b.name || "").replace(/\s+/g, " ").trim();
+  const wa = normWa(b.wa);
+  if (name.length < 3 || name.length > 60 || /[<>]/.test(name)) return json({ error: "nama tidak valid (3-60 karakter)" }, 400);
+  if (!/^62\d{8,13}$/.test(wa)) return json({ error: "nomor WhatsApp tidak valid" }, 400);
+  const r = await gaStore(env).fetch("https://do/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, wa }) });
+  const d = await r.json();
+  return json(d, r.status);
+}
+
+async function handleGaDashboard(request, env) {
+  if (!env.GIVEAWAY_ADMIN_KEY) {
+    return new Response("Dashboard belum aktif: secret GIVEAWAY_ADMIN_KEY belum dipasang di Worker.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
+  }
+  const url = new URL(request.url);
+  const keyParam = url.searchParams.get("key") || "";
+  let adminCookie = null;
+  if (keyParam && keyParam === env.GIVEAWAY_ADMIN_KEY) {
+    adminCookie = "ga_admin=" + encodeURIComponent(await hmacB64(env.TURNSTILE_SECRET, "ga-admin:" + env.GIVEAWAY_ADMIN_KEY)) + "; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax";
+  } else if (!(await checkGaAdmin(request, env))) {
+    return new Response("not found", { status: 404 });
+  }
+  const assetReq = new Request(new URL("/dashboardmoai.html", request.url), { method: "GET" });
+  const resp = await env.ASSETS.fetch(assetReq);
+  const headers = new Headers(resp.headers);
+  headers.set("cache-control", "no-store");
+  if (adminCookie) headers.append("set-cookie", adminCookie);
+  return new Response(resp.body, { status: resp.status, headers });
+}
+
+/* ---------------- Durable Object: data giveaway ----------------
+   Satu instance global: entri peserta, pemenang, tiket terpakai. */
+
+export class GiveawayStore {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const st = this.state.storage;
+
+    if (path === "/use-ticket" && req.method === "POST") {
+      const { h } = await req.json();
+      const used = (await st.get("usedTickets")) || {};
+      const nowS = Math.floor(Date.now() / 1000);
+      for (const k of Object.keys(used)) if (used[k] < nowS) delete used[k];
+      if (h in used) {
+        await st.put("usedTickets", used);
+        return Response.json({ ok: false });
+      }
+      used[h] = nowS + 900;
+      await st.put("usedTickets", used);
+      return Response.json({ ok: true });
+    }
+
+    if (path === "/enter" && req.method === "POST") {
+      const { name, wa } = await req.json();
+      const entries = (await st.get("entries")) || [];
+      if (entries.some((e) => e.wa === wa)) {
+        return Response.json({ error: "duplicate", msg: "Nomor WhatsApp ini sudah terdaftar. Satu nomor hanya boleh satu entri." }, { status: 409 });
+      }
+      let counter = (await st.get("counter")) || 0;
+      counter += 1;
+      const no = "GA-" + String(counter).padStart(3, "0");
+      entries.push({ no, name, wa, ts: Date.now() });
+      await st.put("entries", entries);
+      await st.put("counter", counter);
+      return Response.json({ ok: true, no });
+    }
+
+    if (path === "/status") {
+      const entries = (await st.get("entries")) || [];
+      const winners = (await st.get("winners")) || [];
+      return Response.json({ count: entries.length, winners: winners.map((w) => ({ slot: w.slot, name: w.name, no: w.no })) });
+    }
+
+    if (path === "/list") {
+      const entries = (await st.get("entries")) || [];
+      const winners = (await st.get("winners")) || [];
+      return Response.json({ entries, winners });
+    }
+
+    if (path === "/draw" && req.method === "POST") {
+      const entries = (await st.get("entries")) || [];
+      const winners = (await st.get("winners")) || [];
+      if (winners.length >= GA_MAX_WINNERS) {
+        return Response.json({ error: "max", msg: "Jumlah pemenang sudah maksimal (" + GA_MAX_WINNERS + ")." }, { status: 400 });
+      }
+      const wonWa = new Set(winners.map((w) => w.wa));
+      const pool = entries.filter((e) => !wonWa.has(e.wa));
+      if (!pool.length) {
+        return Response.json({ error: "empty", msg: "Tidak ada peserta yang bisa diundi." }, { status: 400 });
+      }
+      const rnd = crypto.getRandomValues(new Uint32Array(1))[0];
+      const pick = pool[rnd % pool.length];
+      const winner = { slot: winners.length + 1, no: pick.no, name: pick.name, wa: pick.wa, ts: Date.now() };
+      winners.push(winner);
+      await st.put("winners", winners);
+      return Response.json({ ok: true, winner: { slot: winner.slot, name: winner.name, no: winner.no } });
+    }
+
+    if (path === "/remove" && req.method === "POST") {
+      const { wa } = await req.json();
+      let entries = (await st.get("entries")) || [];
+      let winners = (await st.get("winners")) || [];
+      entries = entries.filter((e) => e.wa !== wa);
+      winners = winners.filter((w) => w.wa !== wa);
+      await st.put("entries", entries);
+      await st.put("winners", winners);
+      return Response.json({ ok: true });
+    }
+
+    if (path === "/reset" && req.method === "POST") {
+      const { scope } = await req.json();
+      if (scope === "all") {
+        await st.put("entries", []);
+        await st.put("counter", 0);
+      }
+      await st.put("winners", []);
       return Response.json({ ok: true });
     }
 
