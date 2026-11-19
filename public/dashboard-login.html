@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>(function(){try{var t=localStorage.getItem("tm_theme")||"dark";var r=t==="system"?(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):t;document.documentElement.setAttribute("data-theme",r);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
 <style>
 :root{
@@ -60,10 +61,11 @@ input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
   <h1>Login Dashboard Giveaway</h1>
   <p class="sub">Halaman khusus admin moai.my.id.<br>Masuk untuk melihat peserta dan mengundi pemenang.</p>
   <form id="loginForm" novalidate>
-    <label for="fUser">Username</label>
-    <input id="fUser" type="text" placeholder="Username admin" autocomplete="username">
+    <label for="fUser">Email</label>
+    <input id="fUser" type="email" placeholder="Email admin" autocomplete="username">
     <label for="fPass">Kata Sandi</label>
     <input id="fPass" type="password" placeholder="Kata sandi admin" autocomplete="current-password">
+    <div id="tsBox" style="margin-top:18px;display:flex;justify-content:center;min-height:65px"></div>
     <div class="err" id="fErr"></div>
     <button class="btn" id="btnLogin" type="submit">MASUK</button>
   </form>
@@ -74,13 +76,42 @@ input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
   var form = document.getElementById("loginForm");
   var btn = document.getElementById("btnLogin");
   var err = document.getElementById("fErr");
+  var tsToken = "";
+  var tsWidget = null;
+
+  function renderTs(){
+    if (!window.turnstile || tsWidget !== null) return;
+    var theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    tsWidget = turnstile.render("#tsBox", {
+      sitekey: "0x4AAAAAAGFDhp4eMUo9VAUW",
+      theme: theme,
+      callback: function(t){ tsToken = t; },
+      "expired-callback": function(){ tsToken = ""; },
+      "error-callback": function(){ tsToken = ""; }
+    });
+  }
+  var tsWait = setInterval(function(){
+    if (window.turnstile) { clearInterval(tsWait); renderTs(); }
+  }, 300);
+  setTimeout(function(){ clearInterval(tsWait); }, 15000);
+
+  function resetTs(){
+    tsToken = "";
+    try { if (window.turnstile && tsWidget !== null) turnstile.reset(tsWidget); } catch(e){}
+  }
+
   form.addEventListener("submit", function(ev){
     ev.preventDefault();
     err.classList.remove("show");
     var username = document.getElementById("fUser").value.trim();
     var password = document.getElementById("fPass").value;
     if (!username || !password) {
-      err.textContent = "Username dan kata sandi wajib diisi.";
+      err.textContent = "Email dan kata sandi wajib diisi.";
+      err.classList.add("show");
+      return;
+    }
+    if (!tsToken) {
+      err.textContent = "Selesaikan verifikasi keamanan (Turnstile) dulu ya.";
       err.classList.add("show");
       return;
     }
@@ -89,10 +120,11 @@ input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
     fetch("/api/giveaway/admin/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: username, password: password })
+      body: JSON.stringify({ username: username, password: password, token: tsToken })
     })
       .then(function(r){ return r.json().then(function(d){ return { status: r.status, d: d }; }); })
       .then(function(res){
+        resetTs();
         if (res.d && res.d.ok) {
           btn.textContent = "BERHASIL - MEMBUKA DASHBOARD...";
           location.replace("/dashboardmoai");
@@ -104,6 +136,7 @@ input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
         }
       })
       .catch(function(){
+        resetTs();
         err.textContent = "Koneksi bermasalah. Coba lagi sebentar ya.";
         err.classList.add("show");
         btn.disabled = false;
