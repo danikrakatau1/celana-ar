@@ -129,7 +129,19 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
 .wcard.pop{animation:winnerPop .8s cubic-bezier(.22,1,.36,1) both,winnerGlow 1.5s ease .25s 2}
 @keyframes winnerPop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.045);opacity:1}100%{transform:scale(1)}}
 @keyframes winnerGlow{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 46px rgba(245,158,11,.5)}}
+.wait-panel{text-align:center;padding:26px 10px 10px;transition:opacity .45s ease,transform .45s ease}
+.wait-panel.hide{opacity:0;transform:translateY(-8px)}
+.spin-ring{width:58px;height:58px;margin:0 auto 16px;border-radius:50%;border:4px solid rgba(99,102,241,.18);border-top-color:#6366f1;border-right-color:#22d3ee;animation:spinRing .9s linear infinite}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+.wait-title{font-size:19px;font-weight:800;margin-bottom:6px}
+.wait-sub{color:var(--mut);font-size:14px;line-height:1.65;max-width:430px;margin:0 auto}
+.wait-sub b{color:var(--txt);font-family:"JetBrains Mono",monospace}
+.wait-bar{height:6px;border-radius:99px;background:rgba(148,163,184,.15);max-width:430px;margin:16px auto 4px;overflow:hidden}
+.wait-bar span{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(135deg,#6366f1,#22d3ee);transition:width .3s linear}
+.ts-box{display:none;justify-content:center;margin:14px 0 2px}
+.ts-box.show{display:flex;animation:winIn .5s cubic-bezier(.22,1,.36,1) both}
 </style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 <div class="bg"><div class="grid"></div></div>
@@ -204,12 +216,20 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
       <span class="sess-pill">&#10003; Tiket resmi terdeteksi</span>
     </div>
 
+    <div class="wait-panel" id="waitPanel">
+      <div class="spin-ring" aria-hidden="true"></div>
+      <div class="wait-title">Menyiapkan Pendaftaran</div>
+      <p class="wait-sub">Formulir dibuka dalam <b id="waitCount">01:00</b>. Sambil menunggu, lihat-lihat dulu ya &mdash; iklan yang tampil membantu giveaway ini tetap gratis.</p>
+      <div class="wait-bar"><span id="waitBarFill"></span></div>
+    </div>
+
     <form id="gaForm" novalidate>
       <label class="f-label" for="fName">Nama Lengkap</label>
       <input class="f-input" id="fName" type="text" placeholder="cth: Budi Santoso" maxlength="60" autocomplete="name">
       <label class="f-label" for="fWa">Nomor WhatsApp (aktif)</label>
       <input class="f-input" id="fWa" type="tel" placeholder="cth: 08xxxxxxxxxx" maxlength="20" autocomplete="tel" inputmode="tel">
       <div class="f-error" id="fError"></div>
+      <div class="ts-box" id="gaTsBox"></div>
       <button class="btn-submit" id="btnSubmit" type="submit">IKUT GIVEAWAY SEKARANG</button>
       <div class="f-note">Satu nomor WhatsApp hanya berlaku untuk satu entri. Pemenang dihubungi lewat WhatsApp dan wajib memilih lokasi server setelah pengundian.</div>
     </form>
@@ -288,6 +308,8 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   function showClosed(){
     if (registeredNo) return;
     form.style.display = "none";
+    var wp = document.getElementById("waitPanel");
+    if (wp) wp.style.display = "none";
     closedBox.classList.add("show");
   }
   if (registeredNo) showSuccess(registeredNo);
@@ -386,6 +408,78 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
   var traps = 0;
   try { traps = parseInt(sessionStorage.getItem("ga_trap") || "0", 10) || 0; } catch(e){}
 
+  // ---- delay 1 menit + spinner sebelum form kebuka ----
+  var waitPanel = document.getElementById("waitPanel");
+  var waitDone = false;
+  var waitUntil = 0;
+  try { waitUntil = parseInt(sessionStorage.getItem("ga_wait_until") || "0", 10) || 0; } catch(e){}
+  if (!waitUntil) {
+    waitUntil = Date.now() + 60000;
+    try { sessionStorage.setItem("ga_wait_until", String(waitUntil)); } catch(e){}
+  }
+  function fmtWait(ms){
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(s / 60), d = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (d < 10 ? "0" : "") + d;
+  }
+  function finishWait(){
+    if (waitDone) return;
+    waitDone = true;
+    waitPanel.classList.add("hide");
+    setTimeout(function(){ waitPanel.style.display = "none"; }, 460);
+    if (!registeredNo) form.style.display = "";
+  }
+  if (registeredNo || waitUntil <= Date.now()) {
+    waitPanel.style.display = "none";
+    waitDone = true;
+  } else {
+    form.style.display = "none";
+    var wCount = document.getElementById("waitCount");
+    var wFill = document.getElementById("waitBarFill");
+    wCount.textContent = fmtWait(waitUntil - Date.now());
+    var wIv = setInterval(function(){
+      var rem = waitUntil - Date.now();
+      if (rem <= 0) { clearInterval(wIv); finishWait(); return; }
+      wCount.textContent = fmtWait(rem);
+      wFill.style.width = Math.min(100, (1 - rem / 60000) * 100) + "%";
+    }, 250);
+  }
+
+  // ---- Turnstile di form (muncul setelah jebakan iklan 2x) ----
+  var gaTsToken = "";
+  var gaTsWidget = null;
+  var gaTsShown = false;
+  function renderGaTs(){
+    if (!window.turnstile || gaTsWidget !== null) return;
+    var theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    gaTsWidget = turnstile.render("#gaTsBox", {
+      sitekey: "0x4AAAAAAGFDhp4eMUo9VAUW",
+      theme: theme,
+      callback: function(t){ gaTsToken = t; },
+      "expired-callback": function(){ gaTsToken = ""; },
+      "error-callback": function(){ gaTsToken = ""; }
+    });
+  }
+  function revealTs(){
+    if (gaTsShown) return;
+    gaTsShown = true;
+    document.getElementById("gaTsBox").classList.add("show");
+    var tries = 0;
+    var iv = setInterval(function(){
+      tries++;
+      if (window.turnstile) { clearInterval(iv); renderGaTs(); }
+      else if (tries > 50) clearInterval(iv);
+    }, 300);
+  }
+  function resetGaTs(){
+    gaTsToken = "";
+    try { if (window.turnstile && gaTsWidget !== null) turnstile.reset(gaTsWidget); } catch(e){}
+  }
+  if (traps >= 2) {
+    btn.textContent = "KLIK UNTUK MENGIRIM PENDAFTARAN";
+    revealTs();
+  }
+
   function showError(msg){
     errBox.textContent = msg;
     errBox.classList.add("show");
@@ -411,15 +505,20 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
       try { sessionStorage.setItem("ga_trap", String(traps)); } catch(e){}
       window.open(SMARTLINK, "_blank");
       btn.textContent = traps === 1 ? "KLIK SEKALI LAGI UNTUK MELANJUTKAN" : "KLIK UNTUK MENGIRIM PENDAFTARAN";
+      if (traps === 2) revealTs();
       return;
     }
 
+    if (!gaTsToken) {
+      showError("Selesaikan verifikasi Turnstile dulu ya — selesaikan tantangannya, baru klik kirim lagi.");
+      return;
+    }
     btn.disabled = true;
     btn.textContent = "MENGIRIM...";
     fetch("/api/giveaway/enter", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify({ name: data.name, wa: data.wa, token: gaTsToken })
     })
       .then(function(r){ return r.json().then(function(d){ return { status: r.status, d: d }; }); })
       .then(function(res){
@@ -430,17 +529,20 @@ body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",syste
           loadStatus();
         } else if (res.d && res.d.error === "no_session") {
           showError("Sesi giveaway kamu berakhir. Balik ke halaman utama lalu klik tombol GIVEAWAY lagi ya.");
-          btn.disabled = false; btn.textContent = "IKUT GIVEAWAY SEKARANG";
+          resetGaTs();
+          btn.disabled = false; btn.textContent = "KLIK UNTUK MENGIRIM PENDAFTARAN";
         } else if (res.d && res.d.error === "closed") {
           showClosed();
         } else {
           showError((res.d && (res.d.msg || res.d.error)) || "Pendaftaran gagal. Coba lagi sebentar ya.");
-          btn.disabled = false; btn.textContent = "IKUT GIVEAWAY SEKARANG";
+          resetGaTs();
+          btn.disabled = false; btn.textContent = "KLIK UNTUK MENGIRIM PENDAFTARAN";
         }
       })
       .catch(function(){
         showError("Koneksi bermasalah. Coba lagi sebentar ya.");
-        btn.disabled = false; btn.textContent = "IKUT GIVEAWAY SEKARANG";
+        resetGaTs();
+        btn.disabled = false; btn.textContent = "KLIK UNTUK MENGIRIM PENDAFTARAN";
       });
   });
 })();
