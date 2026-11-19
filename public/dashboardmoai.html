@@ -58,6 +58,14 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
 .draw-result .wn{font-size:28px;font-weight:800;margin-top:6px}
 .draw-result .wm{font-family:"JetBrains Mono",monospace;color:var(--mut);margin-top:4px}
 .small{color:var(--mut2);font-size:12.5px;margin-top:10px;line-height:1.6}
+.ga-shuffle{position:fixed;inset:0;z-index:80;background:rgba(3,6,14,.85);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.ga-shuffle.show{display:flex}
+.ga-shuffle .box{text-align:center;max-width:540px;width:100%;animation:gaPop .35s cubic-bezier(.22,1,.36,1) both}
+.ga-shuffle .lbl{font-size:12px;font-weight:800;letter-spacing:.22em;color:var(--mut);text-transform:uppercase}
+.ga-shuffle .nm{font-size:clamp(38px,9vw,62px);font-weight:800;line-height:1.15;margin:14px 0 6px;min-height:1.2em;word-break:break-word}
+.ga-shuffle .no{font-family:"JetBrains Mono",monospace;color:var(--mut);font-size:15px;min-height:1.4em}
+.ga-shuffle.won .nm{background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes gaPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -202,6 +210,80 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
       .catch(function(){});
   }
 
+  function fireConfetti(){
+    var cv = document.getElementById("confettiCanvas");
+    if (!cv) {
+      cv = document.createElement("canvas");
+      cv.id = "confettiCanvas";
+      cv.style.cssText = "position:fixed;inset:0;z-index:999;pointer-events:none";
+      document.body.appendChild(cv);
+    }
+    var cx = cv.getContext("2d");
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    var colors = ["#6366f1","#22d3ee","#fbbf24","#34d399","#fb7185","#e2e8f0"];
+    var parts = [];
+    for (var i = 0; i < 170; i++) {
+      parts.push({
+        x: cv.width / 2 + (Math.random() - 0.5) * cv.width * 0.7,
+        y: cv.height * 0.32,
+        vx: (Math.random() - 0.5) * 11,
+        vy: -(Math.random() * 9 + 5),
+        w: Math.random() * 8 + 5,
+        h: Math.random() * 5 + 3,
+        r: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.3,
+        c: colors[i % colors.length]
+      });
+    }
+    var t0 = performance.now();
+    (function frame(t){
+      var el = t - t0;
+      cx.clearRect(0, 0, cv.width, cv.height);
+      var alive = false;
+      for (var j = 0; j < parts.length; j++) {
+        var p = parts[j];
+        p.vy += 0.22; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.r += p.vr;
+        if (p.y < cv.height + 30) alive = true;
+        cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r);
+        cx.globalAlpha = Math.max(0, 1 - el / 3800);
+        cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        cx.restore();
+      }
+      if (alive && el < 4200) requestAnimationFrame(frame);
+      else { cx.clearRect(0, 0, cv.width, cv.height); if (cv.parentNode) cv.parentNode.removeChild(cv); }
+    })(t0);
+  }
+
+  function runShuffle(winner, done){
+    var pool = [];
+    (state.entries || []).forEach(function(e){ pool.push(e.name); });
+    if (!pool.length) pool = [winner.name];
+    var ov = document.getElementById("shuffleOv");
+    var nm = document.getElementById("shuffleName");
+    var no = document.getElementById("shuffleNo");
+    var lbl = document.getElementById("shuffleLbl");
+    ov.classList.remove("won");
+    ov.classList.add("show");
+    lbl.textContent = "Mengundi pemenang...";
+    no.textContent = "";
+    nm.textContent = pool[0];
+    var dur = 3600, start = performance.now();
+    (function step(){
+      var p = (performance.now() - start) / dur;
+      if (p >= 1) {
+        nm.textContent = winner.name;
+        no.textContent = "Nomor undian " + winner.no;
+        lbl.textContent = "🏆 Pemenang terpilih!";
+        ov.classList.add("won");
+        fireConfetti();
+        setTimeout(function(){ ov.classList.remove("show"); if (done) done(); }, 2200);
+        return;
+      }
+      nm.textContent = pool[Math.floor(Math.random() * pool.length)];
+      setTimeout(step, 50 + Math.pow(p, 2.2) * 330);
+    })();
+  }
+
   btnDraw.addEventListener("click", function(){
     var slot = state.winners.length + 1;
     if (!confirm("Undi PEMENANG " + slot + " sekarang? Hasilnya langsung tampil di halaman publik dan terkunci.")) return;
@@ -212,12 +294,15 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
         btnDraw.textContent = "UNDI SEKARANG";
         if (res.d && res.d.ok) {
           var w = res.d.winner;
-          document.getElementById("drName").textContent = w.name;
-          document.getElementById("drMeta").textContent = "Pemenang " + w.slot + " - Nomor undian " + w.no;
-          var dr = document.getElementById("drawResult");
-          dr.classList.remove("show"); void dr.offsetWidth; dr.classList.add("show");
-          showMsg("Pemenang " + w.slot + " terundi: " + w.name + " (" + w.no + "). Sudah tampil di /giveaway.", true);
-          load();
+          runShuffle(w, function(){
+            document.getElementById("drName").textContent = w.name;
+            document.getElementById("drMeta").textContent = "Pemenang " + w.slot + " - Nomor undian " + w.no;
+            var dr = document.getElementById("drawResult");
+            dr.classList.remove("show"); void dr.offsetWidth; dr.classList.add("show");
+            showMsg("Pemenang " + w.slot + " terundi: " + w.name + " (" + w.no + "). Sudah tampil di /giveaway.", true);
+            btnDraw.disabled = false;
+            load();
+          });
         } else {
           showMsg("Undian gagal: " + ((res.d && (res.d.msg || res.d.error)) || res.status), false);
           btnDraw.disabled = false;
@@ -261,5 +346,12 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
   setInterval(load, 10000);
 })();
 </script>
+<div class="ga-shuffle" id="shuffleOv">
+  <div class="box">
+    <div class="lbl" id="shuffleLbl">Mengundi pemenang...</div>
+    <div class="nm" id="shuffleName">...</div>
+    <div class="no" id="shuffleNo"></div>
+  </div>
+</div>
 </body>
 </html>
