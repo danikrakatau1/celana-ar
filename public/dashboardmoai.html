@@ -277,23 +277,34 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
     var lbl = document.getElementById("shuffleLbl");
     ov.classList.remove("won");
     ov.classList.add("show");
-    lbl.textContent = "Mengundi pemenang...";
     no.textContent = "";
     nm.textContent = pool[0];
-    var dur = 3600, start = performance.now();
+    // Seremoni 60 detik: cepat -> melambat -> merayap, berhenti di pemenang.
+    var dur = 60000, start = performance.now();
+    function phase(p){
+      if (p < 0.34) return "Mengacak " + pool.length + " nama peserta...";
+      if (p < 0.67) return "Menyaring kandidat...";
+      if (p < 0.9) return "Hampir sampai...";
+      return "Satu nama akan terpilih...";
+    }
     (function step(){
-      var p = (performance.now() - start) / dur;
+      var el = performance.now() - start;
+      var p = el / dur;
       if (p >= 1) {
         nm.textContent = winner.name;
         no.textContent = "Nomor undian " + winner.no;
         lbl.textContent = "🏆 Pemenang terpilih!";
         ov.classList.add("won");
         fireConfetti();
-        setTimeout(function(){ ov.classList.remove("show"); if (done) done(); }, 2200);
+        setTimeout(function(){ ov.classList.remove("show"); if (done) done(); }, 2400);
         return;
       }
+      lbl.textContent = phase(p);
       nm.textContent = pool[Math.floor(Math.random() * pool.length)];
-      setTimeout(step, 50 + Math.pow(p, 2.2) * 330);
+      var rem = Math.ceil((dur - el) / 1000);
+      no.textContent = "Pemenang diumumkan dalam " + Math.floor(rem / 60) + ":" + (rem % 60 < 10 ? "0" : "") + (rem % 60);
+      var delay = p < 0.65 ? 60 : (p < 0.9 ? 60 + Math.pow((p - 0.65) / 0.25, 2) * 260 : 900);
+      setTimeout(step, delay);
     })();
   }
 
