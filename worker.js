@@ -874,7 +874,7 @@ export class GiveawayStore {
       const entries = (await st.get("entries")) || [];
       const winners = (await st.get("winners")) || [];
       const out = { count: entries.length, winners: winners.map((w) => ({ slot: w.slot, name: w.name, no: w.no })) };
-      if (drawing) out.drawing = { endsInMs: Math.max(0, drawing.revealAt - Date.now()), pool: drawing.pool };
+      if (drawing) out.drawing = { endsInMs: Math.max(0, drawing.revealAt - Date.now()), pool: drawing.pool, finalists: drawing.finalists || [] };
       return Response.json(out);
     }
 
@@ -904,10 +904,23 @@ export class GiveawayStore {
       const rnd = crypto.getRandomValues(new Uint32Array(1))[0];
       const pick = pool[rnd % pool.length];
       const winner = { slot: winners.length + 1, no: pick.no, name: pick.name, wa: pick.wa, ts: Date.now() };
+      // Finalis untuk seremoni battle royale: pemenang + maks 4 nama lain,
+      // urutan diacak — halaman publik boleh mengeliminasi semua nama di luar
+      // daftar ini tanpa pernah menggugurkan pemenang asli.
+      const shuffled = (arr) => {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+          const t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      };
+      const otherNames = shuffled(pool.filter((e) => e.wa !== pick.wa).map((e) => e.name));
+      const finalists = shuffled([pick.name].concat(otherNames.slice(0, 4)));
       const now = Date.now();
-      const drawing = { winner: winner, pool: pool.map((e) => e.name), startedAt: now, revealAt: now + GA_DRAW_MS };
+      const drawing = { winner: winner, pool: pool.map((e) => e.name), finalists: finalists, startedAt: now, revealAt: now + GA_DRAW_MS };
       await st.put("drawing", drawing);
-      return Response.json({ ok: true, drawing: true, revealAt: drawing.revealAt, winner: { slot: winner.slot, name: winner.name, no: winner.no } });
+      return Response.json({ ok: true, drawing: true, revealAt: drawing.revealAt, winner: { slot: winner.slot, name: winner.name, no: winner.no }, finalists: finalists, pool: drawing.pool });
     }
 
     if (path === "/remove" && req.method === "POST") {
