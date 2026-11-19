@@ -108,6 +108,19 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
     </div>
   </section>
 
+  <section class="panel">
+    <h2>Menu Test &mdash; Peserta Simulasi</h2>
+    <div class="row" style="align-items:center;flex-wrap:wrap;gap:14px">
+      <label><input type="radio" name="seedCount" value="50" checked> 50 akun</label>
+      <label><input type="radio" name="seedCount" value="100"> 100 akun</label>
+      <label><input type="radio" name="seedCount" value="150"> 150 akun</label>
+      <label><input type="radio" name="seedCount" value="custom"> Custom</label>
+      <input type="number" id="seedCustom" min="1" max="500" placeholder="Jumlah (1-500)" disabled style="width:160px;background:rgba(148,163,184,.07);border:1px solid rgba(148,163,184,.25);border-radius:10px;color:#eef2fd;font:inherit;font-size:14px;padding:9px 12px">
+      <button class="btn btn-ghost" id="btnSeed">CREATE</button>
+    </div>
+    <div class="small">Peserta simulasi dibuat dengan nama &amp; nomor WhatsApp acak, khusus buat ngetes animasi undi dengan kolam besar. Bersihkan semuanya lewat Reset Semua Data sebelum hari-H.</div>
+  </section>
+
   <section class="panel danger-zone">
     <h2>Zona Berbahaya</h2>
     <div class="row">
@@ -312,6 +325,40 @@ tr.is-winner td{background:rgba(251,191,36,.06)}
         btnDraw.textContent = "UNDI SEKARANG";
         showMsg("Koneksi bermasalah.", false);
         btnDraw.disabled = false;
+      });
+  });
+
+  var seedCustom = document.getElementById("seedCustom");
+  document.querySelectorAll('input[name="seedCount"]').forEach(function(r){
+    r.addEventListener("change", function(){
+      var sel = document.querySelector('input[name="seedCount"]:checked');
+      seedCustom.disabled = !sel || sel.value !== "custom";
+      if (!seedCustom.disabled) seedCustom.focus();
+    });
+  });
+  document.getElementById("btnSeed").addEventListener("click", function(){
+    var sel = document.querySelector('input[name="seedCount"]:checked');
+    var count = sel && sel.value === "custom" ? parseInt(seedCustom.value, 10) : parseInt(sel ? sel.value : "0", 10);
+    if (!count || count < 1 || count > 500) { showMsg("Jumlah peserta test harus antara 1 sampai 500.", false); return; }
+    if (!confirm("Buat " + count + " peserta simulasi sekarang?")) return;
+    var btnSeed = document.getElementById("btnSeed");
+    btnSeed.disabled = true;
+    btnSeed.textContent = "MEMBUAT...";
+    api("/api/giveaway/admin/seed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ count: count }) })
+      .then(function(res){
+        btnSeed.disabled = false;
+        btnSeed.textContent = "CREATE";
+        if (res.d && res.d.ok) {
+          showMsg("Peserta simulasi dibuat: " + res.d.added + " akun. Total peserta sekarang " + res.d.total + ".", true);
+          load();
+        } else {
+          showMsg("Gagal membuat peserta simulasi: " + ((res.d && (res.d.msg || res.d.error)) || res.status), false);
+        }
+      })
+      .catch(function(){
+        btnSeed.disabled = false;
+        btnSeed.textContent = "CREATE";
+        showMsg("Koneksi bermasalah.", false);
       });
   });
 
