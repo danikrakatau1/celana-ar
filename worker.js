@@ -239,6 +239,7 @@ const GA_DRAW_LABEL = "Sabtu, 21 November 2026 pukul 20.00 WIB";
 const GA_TICKET_TTL = 600;
 const GA_SESS_TTL = 7200;
 const GA_MAX_WINNERS = 2;
+const GA_ADMIN_USER = "faqihanif12282000@gmail.com"; // username login dashboard = email (pilihan user 19 Nov 2026)
 const BOT_UA = /(gptbot|claudebot|ccbot|bytespider|amazonbot|anthropic-ai|cohere-ai|ai2bot|perplexitybot|meta-externalagent|facebookbot|twitterbot|linkedinbot|slackbot|discordbot|bingbot|googlebot|yandexbot|baiduspider|duckduckbot|semrushbot|ahrefsbot|mj12bot|curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|node-fetch|axios|headlesschrome|phantomjs|puppeteer|playwright)/i;
 const RL = new Map();
 
@@ -761,9 +762,26 @@ async function handleGaLogin(request, env) {
   }
   let b = {};
   try { b = await request.json(); } catch {}
-  const user = String(b.username || "").trim();
+  const user = String(b.username || "").trim().toLowerCase();
   const pass = String(b.password || "");
-  const ok = user === "admin" && pass.length > 0 && pass === env.GIVEAWAY_ADMIN_KEY;
+  // Lapis anti-bruteforce: token Turnstile dari form login wajib sah.
+  const token = String(b.token || "");
+  let tsOk = false;
+  if (token) {
+    try {
+      const form = new URLSearchParams();
+      form.set("secret", env.TURNSTILE_SECRET);
+      form.set("response", token);
+      form.set("remoteip", ip);
+      const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+      const vd = await vr.json();
+      tsOk = !!(vd && vd.success);
+    } catch {}
+  }
+  if (!tsOk) {
+    return json({ error: "Verifikasi keamanan (Turnstile) gagal. Muat ulang halaman lalu coba lagi." }, 403);
+  }
+  const ok = user === GA_ADMIN_USER && pass.length > 0 && pass === env.GIVEAWAY_ADMIN_KEY;
   if (!ok) {
     if (!rec || now >= rec.reset) RL.set("galogin:" + ip, { n: 1, reset: now + 600000 });
     else rec.n++;
