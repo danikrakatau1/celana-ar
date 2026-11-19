@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login Dashboard — moai.my.id</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Crect x='3' y='5' width='18' height='14' rx='3' stroke='%236366f1' stroke-width='2'/%3E%3Cpath d='M4.5 7.5l7.5 5.5 7.5-5.5' stroke='%2322d3ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>(function(){try{var t=localStorage.getItem("tm_theme")||"dark";var r=t==="system"?(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):t;document.documentElement.setAttribute("data-theme",r);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<style>
+:root{
+  --bg:#070a14; --panel:rgba(148,163,184,.055); --stroke:rgba(148,163,184,.15);
+  --txt:#eef2fd; --mut:#93a1c0; --mut2:#64748f;
+  --grad:linear-gradient(135deg,#6366f1 0%,#22d3ee 100%);
+  --danger:#fb7185; --shadow:0 18px 50px rgba(2,6,17,.55);
+}
+:root[data-theme="light"]{
+  --bg:#f3f5fb; --panel:rgba(15,23,42,.045); --stroke:rgba(15,23,42,.12);
+  --txt:#0d1526; --mut:#5a6a8a; --mut2:#8494b3; --shadow:0 18px 50px rgba(30,41,82,.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Plus Jakarta Sans",system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-font-smoothing:antialiased}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(900px 500px at 88% -8%,rgba(99,102,241,.20),transparent 62%),radial-gradient(760px 520px at -12% 88%,rgba(13,148,136,.12),transparent 62%),var(--bg)}
+.card{background:var(--panel);border:1px solid var(--stroke);border-radius:20px;box-shadow:var(--shadow);padding:34px 30px;width:100%;max-width:400px;animation:in .6s cubic-bezier(.22,1,.36,1) both}
+@keyframes in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px}
+.brand .nm{font-size:20px;font-weight:800}
+.brand .nm em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ver{font-size:10px;font-weight:800;letter-spacing:.12em;color:#fff;background:var(--grad);padding:3px 8px;border-radius:99px}
+h1{font-size:19px;font-weight:800;text-align:center;margin-top:10px}
+.sub{text-align:center;color:var(--mut);font-size:13.5px;margin:6px 0 20px;line-height:1.6}
+label{display:block;font-size:13.5px;font-weight:700;color:var(--mut);margin:14px 0 7px}
+input{width:100%;background:rgba(2,6,17,.35);border:1px solid var(--stroke);border-radius:12px;color:var(--txt);font:inherit;font-size:16px;padding:13px 15px;outline:none;transition:border-color .25s ease, box-shadow .25s ease}
+:root[data-theme="light"] input{background:#fff}
+input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.25)}
+.btn{width:100%;margin-top:22px;border:0;cursor:pointer;background:var(--grad);color:#fff;font:inherit;font-size:16px;font-weight:800;padding:14px;border-radius:12px;box-shadow:0 10px 26px rgba(79,70,229,.35);transition:transform .18s ease, opacity .18s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.55;cursor:wait;transform:none}
+.err{display:none;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.45);color:#fda4af;border-radius:12px;padding:11px 14px;font-size:13.5px;font-weight:600;margin-top:16px;text-align:center}
+:root[data-theme="light"] .err{color:#be123c}
+.err.show{display:block;animation:in .4s ease both}
+.back{display:block;text-align:center;margin-top:18px;color:var(--mut2);font-size:13px;text-decoration:none}
+.back:hover{color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<main class="card">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="3" stroke="url(#lg)" stroke-width="1.8"/>
+      <path d="M4.5 7.5l7.5 5.5 7.5-5.5" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs><linearGradient id="lg" x1="3" y1="5" x2="21" y2="19"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+    </svg>
+    <span class="nm">Temp<em>Mail</em></span><span class="ver">PRO</span>
+  </div>
+  <h1>Login Dashboard Giveaway</h1>
+  <p class="sub">Halaman khusus admin moai.my.id.<br>Masuk untuk melihat peserta dan mengundi pemenang.</p>
+  <form id="loginForm" novalidate>
+    <label for="fUser">Username</label>
+    <input id="fUser" type="text" placeholder="Username admin" autocomplete="username">
+    <label for="fPass">Kata Sandi</label>
+    <input id="fPass" type="password" placeholder="Kata sandi admin" autocomplete="current-password">
+    <div class="err" id="fErr"></div>
+    <button class="btn" id="btnLogin" type="submit">MASUK</button>
+  </form>
+  <a class="back" href="/">&larr; Kembali ke Beranda</a>
+</main>
+<script>
+(function(){
+  var form = document.getElementById("loginForm");
+  var btn = document.getElementById("btnLogin");
+  var err = document.getElementById("fErr");
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    err.classList.remove("show");
+    var username = document.getElementById("fUser").value.trim();
+    var password = document.getElementById("fPass").value;
+    if (!username || !password) {
+      err.textContent = "Username dan kata sandi wajib diisi.";
+      err.classList.add("show");
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "MEMERIKSA...";
+    fetch("/api/giveaway/admin/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: username, password: password })
+    })
+      .then(function(r){ return r.json().then(function(d){ return { status: r.status, d: d }; }); })
+      .then(function(res){
+        if (res.d && res.d.ok) {
+          btn.textContent = "BERHASIL - MEMBUKA DASHBOARD...";
+          location.replace("/dashboardmoai");
+        } else {
+          err.textContent = (res.d && res.d.error) || "Login gagal. Coba lagi.";
+          err.classList.add("show");
+          btn.disabled = false;
+          btn.textContent = "MASUK";
+        }
+      })
+      .catch(function(){
+        err.textContent = "Koneksi bermasalah. Coba lagi sebentar ya.";
+        err.classList.add("show");
+        btn.disabled = false;
+        btn.textContent = "MASUK";
+      });
+  });
+})();
+</script>
+</body>
+</html>
