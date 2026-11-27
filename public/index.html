@@ -45,17 +45,6 @@
     <p class="sub">Pakai untuk verifikasi akun, daftar layanan, atau menerima kode OTP — tanpa membuka email pribadi Anda ke spam dan kebocoran data.</p>
   </section>
 
-  <section class="ga-cta rise" style="animation-delay:.04s" aria-label="Giveaway">
-    <a class="ga-cta-in" href="/giveaway/enter">
-      <span class="ga-cta-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg></span>
-      <span class="ga-cta-tx">
-        <span class="ga-cta-t">GIVEAWAY VPS GRATIS</span>
-        <span class="ga-cta-s">Menangkan VPS 1 Core / RAM 2 GB / 20 GB selama 1 bulan, full root access, lokasi bebas pilih. 2 pemenang, diundi 21 Nov 2026 — klik untuk ikut!</span>
-      </span>
-      <span class="ga-cta-arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
-    </a>
-  </section>
-
   <div class="adslot" aria-hidden="true">
 <div class="ad-desk"><script>
   atOptions = {
@@ -191,6 +180,71 @@
 <div class="toast" id="toast"></div>
 
 <script src="/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js" defer></script>
+<script>
+/* Lapisan library (27 Nov 2026): Lenis smooth scroll + reveal GSAP.
+   Terisolasi try/catch; bila CDN gagal halaman tetap seperti semula. */
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) return;
+  var lenis = null;
+  function initLenis() {
+    try {
+      if (typeof Lenis === "undefined") return;
+      lenis = new Lenis({ duration: 1.1, smoothWheel: true });
+      lenis.on("scroll", function () { if (window.ScrollTrigger) ScrollTrigger.update(); });
+      if (window.gsap) {
+        gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0);
+      } else {
+        var raf = function (t) { lenis.raf(t); requestAnimationFrame(raf); };
+        requestAnimationFrame(raf);
+      }
+    } catch (e) {}
+  }
+  function initGsap() {
+    try {
+      if (!window.gsap || !window.ScrollTrigger) return;
+      gsap.registerPlugin(ScrollTrigger);
+      var reveal = function (targets, vars) {
+        gsap.utils.toArray(targets).forEach(function (el) {
+          gsap.from(el, Object.assign({
+            y: 22, opacity: 0, duration: 0.65, ease: "power3.out",
+            clearProps: "transform,opacity",
+            scrollTrigger: { trigger: el, start: "top 90%", toggleActions: "play none none reverse" }
+          }, vars || {}));
+        });
+      };
+      reveal(".secttl");
+      reveal(".steps .step", { y: 26, duration: 0.7 });
+      reveal(".faq details", { y: 16, duration: 0.55 });
+      ScrollTrigger.refresh();
+    } catch (e) {}
+  }
+  window.addEventListener("load", function () { initLenis(); initGsap(); });
+})();
+</script>
+<script type="module">
+/* Motion: pegas tekan pada tombol utama (pointer events + animate spring). */
+try {
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const M = await import("https://cdn.jsdelivr.net/npm/motion@11/+esm");
+    const animate = M.animate;
+    if (typeof animate === "function") {
+      document.querySelectorAll(".btn-p, .btn-s, .refresh").forEach((btn) => {
+        const down = () => animate(btn, { scale: 0.96 }, { type: "spring", stiffness: 500, damping: 24 });
+        const up = () => animate(btn, { scale: 1 }, { type: "spring", stiffness: 380, damping: 17 });
+        btn.addEventListener("pointerdown", down);
+        btn.addEventListener("pointerup", up);
+        btn.addEventListener("pointerleave", up);
+        btn.addEventListener("pointercancel", up);
+      });
+    }
+  }
+} catch (e) {}
+</script>
 <script>
 fetch("/api/domains").then(function(r){return r.json();}).then(function(d){
   if(!d||!d.domains)return;

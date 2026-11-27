@@ -347,15 +347,3 @@ body{
 .adnative{display:block}
 .adnative #container-ff882573f803eeb134a2a23e7bef6231{max-width:728px;margin:0 auto}
 
-
-/* ---------- giveaway cta (19 Nov 2026) ---------- */
-.ga-cta{margin:6px 0 2px}
-.ga-cta-in{display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--txt);background:var(--grad-soft);border:1px solid rgba(99,102,241,.45);border-radius:var(--r-lg);padding:18px 22px;box-shadow:var(--shadow);transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
-.ga-cta-in:hover{transform:translateY(-2px);border-color:rgba(34,211,238,.6);box-shadow:0 22px 55px rgba(79,70,229,.35)}
-.ga-cta-ic{flex:none;width:46px;height:46px;border-radius:13px;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(99,102,241,.45)}
-.ga-cta-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ga-cta-t{font-weight:800;font-size:17px;letter-spacing:.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.ga-cta-s{font-size:13.5px;color:var(--mut);line-height:1.5}
-.ga-cta-arrow{margin-left:auto;flex:none;color:var(--mut);transition:transform .25s ease,color .25s ease}
-.ga-cta-in:hover .ga-cta-arrow{transform:translateX(3px);color:var(--txt)}
-@media (max-width:640px){.ga-cta-s{font-size:12.5px}.ga-cta-in{padding:15px 16px;gap:12px}}
