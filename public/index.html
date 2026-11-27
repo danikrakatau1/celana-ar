@@ -193,7 +193,7 @@
   function initLenis() {
     try {
       if (typeof Lenis === "undefined") return;
-      lenis = new Lenis({ lerp: 0.16, smoothWheel: true });
+      lenis = new Lenis({ lerp: 0.16, smoothWheel: false });
       lenis.on("scroll", function () { if (window.ScrollTrigger) ScrollTrigger.update(); });
       if (window.gsap) {
         gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
